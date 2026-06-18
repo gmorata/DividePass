@@ -270,6 +270,18 @@ CREATE TABLE activity_logs (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 3.16 Notificações do Usuário
+-- CRUD: notificações geradas pelo sistema (inadimplência, avisos, etc.)
+CREATE TABLE notifications (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title       VARCHAR(255) NOT NULL,
+    message     TEXT NOT NULL,
+    read        BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ----------------------------------------------------------
 -- 4. ÍNDICES
 -- ----------------------------------------------------------
@@ -306,6 +318,9 @@ CREATE INDEX idx_verification_pins_created ON verification_pins(created_at DESC)
 
 CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_created ON activity_logs(created_at DESC);
+
+CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE INDEX idx_notifications_read ON notifications(read);
 
 -- ----------------------------------------------------------
 -- 5. VIEWS (CONSULTAS PRÉ-DEFINIDAS)
@@ -420,6 +435,9 @@ CREATE TRIGGER trg_support_tickets_updated_at BEFORE UPDATE ON support_tickets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trg_announcements_updated_at BEFORE UPDATE ON announcements
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER trg_notifications_updated_at BEFORE UPDATE ON notifications
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Função: Verifica se grupo está cheio antes de inserir membro
