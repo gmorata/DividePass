@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Users, Check } from 'lucide-react';
+import { ChevronLeft, Users, Check, BadgeCheck } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import './Catalog.css';
 
@@ -59,7 +59,14 @@ function Catalog() {
             return (
               <div key={group.id} className={`group-card ${full ? 'group-card-full' : ''}`}>
                 <div className="group-card-header">
-                  <h3>{group.name}</h3>
+                  <h3>
+                    {group.name}
+                    {group.verified && (
+                      <span className="verified-badge" title="Grupo verificado">
+                        <BadgeCheck size={18} />
+                      </span>
+                    )}
+                  </h3>
                   {full ? (
                     <span className="tag tag-full">Cheio</span>
                   ) : (

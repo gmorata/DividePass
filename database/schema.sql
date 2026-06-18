@@ -115,6 +115,7 @@ CREATE TABLE master_accounts (
 CREATE TABLE groups (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     service_id      UUID NOT NULL REFERENCES streaming_services(id) ON DELETE CASCADE,
+    owner_id        UUID REFERENCES users(id) ON DELETE SET NULL,
     name            VARCHAR(200) NOT NULL,
     price_per_slot  DECIMAL(10,2) NOT NULL,
     billing_cycle   VARCHAR(20) NOT NULL DEFAULT 'monthly'
@@ -122,6 +123,8 @@ CREATE TABLE groups (
     cycle_discount  DECIMAL(5,2) NOT NULL DEFAULT 0
                         CHECK (cycle_discount >= 0 AND cycle_discount <= 100),
     max_size        INTEGER NOT NULL DEFAULT 4,
+    cover_url       TEXT,
+    verified        BOOLEAN NOT NULL DEFAULT FALSE,
     status          VARCHAR(20) NOT NULL DEFAULT 'open',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -294,6 +297,7 @@ CREATE INDEX idx_password_resets_user ON password_resets(user_id);
 
 CREATE INDEX idx_groups_service ON groups(service_id);
 CREATE INDEX idx_groups_status ON groups(status);
+CREATE INDEX idx_groups_owner ON groups(owner_id);
 
 CREATE INDEX idx_group_members_group ON group_members(group_id);
 CREATE INDEX idx_group_members_user ON group_members(user_id);
