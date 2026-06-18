@@ -54,7 +54,7 @@ function Checkout() {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
 
-      if (!accessToken || !user?.email) {
+      if (!accessToken) {
         throw new Error('Você precisa estar logado para finalizar o pagamento.');
       }
 
@@ -71,9 +71,8 @@ function Checkout() {
           group_id: groupId,
           user_id: user.id,
           amount: Number(group.price_per_slot),
-          reason: `Assinatura ${service.fullName} - ${group.name}`,
+          reason: `DividePass - ${service.name || service.full_name}`,
           back_url: `${import.meta.env.VITE_MERCADO_PAGO_BACK_URL || window.location.origin}/dashboard/credentials/${service.id}`,
-          payer_email: user.email,
         }),
       });
 

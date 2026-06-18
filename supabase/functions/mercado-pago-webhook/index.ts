@@ -21,8 +21,7 @@ export default {
       const body = await req.json();
       console.log("Webhook received:", JSON.stringify(body));
 
-      // Mercado Pago envia notificações com tipo e id do recurso
-      const topic = body.type || body.topic;
+      const topic = body.type || body.topic || body.action;
       const resourceId = body.data?.id;
 
       if (!topic || !resourceId) {
@@ -32,127 +31,138 @@ export default {
         );
       }
 
-      if (topic === "subscription_preapproval" || topic === "preapproval") {
-        // Busca detalhes da assinatura no Mercado Pago
-        const mpResponse = await fetch(`https://api.mercadopago.com/preapproval/${resourceId}`, {
-          headers: { Authorization: `Bearer ${mpAccessToken}` },
-        });
-
-        if (!mpResponse.ok) {
-          console.error("Failed to fetch preapproval from MP");
-          return new Response("OK", { status: 200, headers: corsHeaders });
-        }
-
-        const preapproval = await mpResponse.json();
-        const [group_id, user_id] = (preapproval.external_reference || "").split(":");
-
-        if (!group_id || !user_id) {
-          console.error("Invalid external_reference", preapproval.external_reference);
-          return new Response("OK", { status: 200, headers: corsHeaders });
-        }
-
-        // Atualiza assinatura no Supabase
-        const { error: updateError } = await supabaseAdmin
-          .from("user_subscriptions")
-          .update({
-            status: preapproval.status === "authorized" ? "active" : preapproval.status,
-            mercado_pago_status: preapproval.status,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("mercado_pago_subscription_id", resourceId);
-
-        if (updateError) {
-          console.error("Error updating subscription:", updateError);
-        }
-
-        // Se a assinatura foi cancelada, remove usuário do grupo
-        if (preapproval.status === "cancelled" || preapproval.status === "paused") {
-          const { error: cancelError } = await supabaseAdmin
-            .from("user_subscriptions")
-            .update({ status: "cancelled", updated_at: new Date().toISOString() })
-            .eq("mercado_pago_subscription_id", resourceId);
-
-          if (cancelError) {
-            console.error("Error cancelling subscription:", cancelError);
-          }
-        }
-
-        // Se a assinatura foi autorizada, adiciona usuário ao grupo
-        if (preapproval.status === "authorized") {
-          // Busca próxima data de cobrança
-          const nextPaymentDate = preapproval.auto_recurring?.next_payment_date;
-
-          // Adiciona membro ao grupo
-          const { error: memberError } = await supabaseAdmin
-            .from("group_members")
-            .upsert({
-              group_id,
-              user_id,
-              status: "active",
-              joined_at: new Date().toISOString(),
-            }, { onConflict: "group_id, user_id" });
-
-          if (memberError) {
-            console.error("Error adding group member:", memberError);
-          }
-
-          // Cria ou atualiza user_subscriptions
-          const { error: subError } = await supabaseAdmin
-            .from("user_subscriptions")
-            .upsert({
-              user_id,
-              group_id,
-              service_id: preapproval.external_reference ? undefined : null,
-              status: "active",
-              started_at: new Date().toISOString(),
-              expires_at: nextPaymentDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            }, { onConflict: "user_id, group_id" });
-
-          if (subError) {
-            console.error("Error updating user_subscriptions:", subError);
-          }
-
-          // Cria pagamento confirmado
-          const { error: paymentError } = await supabaseAdmin
-            .from("payments")
-            .insert({
-              user_id,
-              amount: preapproval.auto_recurring?.transaction_amount || 0,
-              method: "mercado_pago",
-              status: "paid",
-              transaction_code: resourceId,
-              paid_at: new Date().toISOString(),
-            });
-
-          if (paymentError) {
-            console.error("Error inserting payment:", paymentError);
-          }
-
-          // Marca fatura atual como paga se existir
-          const { error: invoiceError } = await supabaseAdmin
-            .from("invoices")
-            .update({ status: "paid", paid_at: new Date().toISOString() })
-            .eq("user_id", user_id)
-            .eq("status", "pending")
-            .order("due_date", { ascending: true })
-            .limit(1);
-
-          if (invoiceError) {
-            console.error("Error updating invoice:", invoiceError);
-          }
-        }
-      } else if (topic === "payment") {
-        // Pagamento avulso (se usar preferências no futuro)
+      if (topic === "payment") {
         const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${resourceId}`, {
           headers: { Authorization: `Bearer ${mpAccessToken}` },
         });
 
         if (!mpResponse.ok) {
+          console.error("Failed to fetch payment from MP");
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
         const payment = await mpResponse.json();
-        console.log("Payment notification:", payment);
+        const externalReference = payment.external_reference;
+
+        if (!externalReference) {
+          console.error("Payment without external_reference");
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        const [group_id, user_id] = externalReference.split(":");
+
+        if (!group_id || !user_id) {
+          console.error("Invalid external_reference", externalReference);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        const amount = payment.transaction_amount || 0;
+        const paidAt = payment.date_approved || new Date().toISOString();
+
+        // Só processa pagamentos aprovados
+        if (payment.status !== "approved") {
+          console.log(`Payment status: ${payment.status}. Ignoring.`);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        // Busca o grupo para obter service_id
+        const { data: group, error: groupError } = await supabaseAdmin
+          .from("groups")
+          .select("service_id, name")
+          .eq("id", group_id)
+          .single();
+
+        if (groupError || !group) {
+          console.error("Group not found", groupError);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        // Atualiza ou insere a assinatura do usuário
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        const { error: subError } = await supabaseAdmin
+          .from("user_subscriptions")
+          .upsert({
+            user_id,
+            group_id,
+            service_id: group.service_id,
+            amount,
+            status: "active",
+            mercado_pago_status: "approved",
+            external_reference: externalReference,
+            started_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+          }, { onConflict: "user_id, group_id" });
+
+        if (subError) {
+          console.error("Error upserting subscription:", subError);
+        }
+
+        // Adiciona membro ao grupo
+        const { error: memberError } = await supabaseAdmin
+          .from("group_members")
+          .upsert({
+            group_id,
+            user_id,
+            status: "active",
+            joined_at: new Date().toISOString(),
+          }, { onConflict: "group_id, user_id" });
+
+        if (memberError) {
+          console.error("Error adding group member:", memberError);
+        }
+
+        // Registra o pagamento
+        const { error: paymentError } = await supabaseAdmin
+          .from("payments")
+          .insert({
+            user_id,
+            amount,
+            method: payment.payment_method_id || "mercado_pago",
+            status: "paid",
+            transaction_code: String(resourceId),
+            paid_at: paidAt,
+          });
+
+        if (paymentError) {
+          console.error("Error inserting payment:", paymentError);
+        }
+
+        // Marca fatura atual como paga
+        const { error: invoicePaidError } = await supabaseAdmin
+          .from("invoices")
+          .update({ status: "paid", paid_at: paidAt })
+          .eq("user_id", user_id)
+          .eq("group_id", group_id)
+          .eq("status", "pending")
+          .order("due_date", { ascending: true })
+          .limit(1);
+
+        if (invoicePaidError) {
+          console.error("Error marking invoice as paid:", invoicePaidError);
+        }
+
+        // Cria próxima fatura mensal para recorrência interna
+        const nextDue = new Date();
+        nextDue.setDate(nextDue.getDate() + 30);
+
+        const { error: nextInvoiceError } = await supabaseAdmin
+          .from("invoices")
+          .insert({
+            user_id,
+            group_id,
+            amount,
+            due_date: nextDue.toISOString().split("T")[0],
+            status: "pending",
+          });
+
+        if (nextInvoiceError) {
+          console.error("Error creating next invoice:", nextInvoiceError);
+        }
+      } else if (topic === "subscription_preapproval" || topic === "preapproval") {
+        // Mantido para compatibilidade com eventuais assinaturas antigas
+        console.log("Preapproval webhook ignored. Using Checkout Pro payments.");
       }
 
       return new Response(

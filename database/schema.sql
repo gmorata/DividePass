@@ -162,6 +162,7 @@ CREATE TABLE user_subscriptions (
     expires_at                  DATE,
     amount                      DECIMAL(10,2),
     mercado_pago_subscription_id TEXT,
+    mercado_pago_preference_id  TEXT,
     mercado_pago_status         TEXT,
     external_reference          TEXT,
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),

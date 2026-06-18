@@ -5,10 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface CreateSubscriptionBody {
+interface CreatePaymentBody {
   group_id: string;
   user_id: string;
-  payer_email?: string;
   amount: number;
   reason: string;
   back_url: string;
@@ -31,11 +30,11 @@ export default {
 
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-      const { group_id, user_id, payer_email, amount, reason, back_url }: CreateSubscriptionBody = await req.json();
+      const { group_id, user_id, amount, reason, back_url }: CreatePaymentBody = await req.json();
 
-      if (!group_id || !user_id || !amount) {
+      if (!group_id || !user_id || !amount || !reason) {
         return new Response(
-          JSON.stringify({ error: "Dados incompletos para criar assinatura" }),
+          JSON.stringify({ error: "Dados incompletos para criar pagamento" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -54,33 +53,37 @@ export default {
         );
       }
 
-      // Cria assinatura recorrente no Mercado Pago
-      // A referência principal é o external_reference (group_id:user_id).
-      // O payer_email, se enviado, é apenas uma referência adicional.
-      const mpPayload: Record<string, unknown> = {
-        back_url,
-        reason,
-        external_reference: `${group_id}:${user_id}`,
-        auto_recurring: {
-          frequency: 1,
-          frequency_type: "months",
-          transaction_amount: amount,
-          currency_id: "BRL",
-        },
-        status: "pending",
-      };
+      const webhookUrl = `${supabaseUrl}/functions/v1/mercado-pago-webhook`;
+      const externalReference = `${group_id}:${user_id}`;
 
-      if (payer_email) {
-        mpPayload.payer_email = payer_email;
-      }
-
-      const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
+      // Cria preferência de pagamento no Mercado Pago Checkout Pro.
+      // Permite que qualquer conta do Mercado Pago efetue o pagamento,
+      // pois a identificação do cliente é feita pelo external_reference.
+      const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${mpAccessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(mpPayload),
+        body: JSON.stringify({
+          items: [
+            {
+              title: reason,
+              description: `Assinatura mensal do grupo ${group.name}`,
+              quantity: 1,
+              currency_id: "BRL",
+              unit_price: amount,
+            },
+          ],
+          external_reference: externalReference,
+          back_urls: {
+            success: back_url,
+            pending: back_url,
+            failure: back_url,
+          },
+          auto_return: "approved",
+          notification_url: webhookUrl,
+        }),
       });
 
       const mpData = await mpResponse.json();
@@ -88,33 +91,48 @@ export default {
       if (!mpResponse.ok) {
         console.error("Mercado Pago error:", mpData);
         return new Response(
-          JSON.stringify({ error: "Erro ao criar assinatura no Mercado Pago", details: mpData }),
+          JSON.stringify({ error: "Erro ao criar pagamento no Mercado Pago", details: mpData }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       // Registra a assinatura pendente no Supabase
-      const { error: insertError } = await supabaseAdmin
+      const { error: upsertError } = await supabaseAdmin
         .from("user_subscriptions")
         .upsert({
           user_id,
           group_id,
           service_id: group.service_id,
-          mercado_pago_subscription_id: mpData.id,
+          mercado_pago_preference_id: mpData.id,
           amount,
           status: "pending",
           mercado_pago_status: "pending",
-          external_reference: `${group_id}:${user_id}`,
+          external_reference: externalReference,
           started_at: new Date().toISOString(),
         }, { onConflict: "user_id, group_id" });
 
-      if (insertError) {
-        console.error("Supabase insert error:", insertError);
+      if (upsertError) {
+        console.error("Supabase upsert error:", upsertError);
+      }
+
+      // Cria fatura pendente para o primeiro mês
+      const { error: invoiceError } = await supabaseAdmin
+        .from("invoices")
+        .insert({
+          user_id,
+          group_id,
+          amount,
+          due_date: new Date().toISOString().split("T")[0],
+          status: "pending",
+        });
+
+      if (invoiceError) {
+        console.error("Invoice insert error:", invoiceError);
       }
 
       return Response.json(
         {
-          subscription_id: mpData.id,
+          preference_id: mpData.id,
           init_point: mpData.init_point,
           sandbox_init_point: mpData.sandbox_init_point,
         },
