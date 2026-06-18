@@ -1,0 +1,211 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #F1F5F9;
+  position: relative;
+}
+
+/* Mobile Button Admin */
+.admin-mobile-btn {
+  display: none;
+  position: fixed;
+  top: 0.75rem;
+  left: 1rem;
+  z-index: 50;
+  background: #0F172A;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  font-size: 1.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.admin-mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  backdrop-filter: blur(2px);
+}
+
+.admin-sidebar {
+  width: 260px;
+  background-color: #0F172A;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  z-index: 40;
+  transition: transform 0.3s ease;
+}
+
+.admin-logo {
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 3rem;
+  color: white;
+}
+
+.admin-logo span {
+  color: var(--primary);
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.admin-nav .nav-item {
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  color: #94A3B8;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.admin-nav .nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.admin-nav .nav-item.active {
+  background-color: var(--primary);
+  color: white;
+}
+
+.admin-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+}
+
+.admin-footer .logout {
+  color: #EF4444;
+}
+
+.admin-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.admin-topbar {
+  height: 70px;
+  background-color: white;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+
+.search-bar input {
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border);
+  width: 300px;
+  outline: none;
+}
+
+.search-bar input:focus {
+  border-color: var(--primary);
+}
+
+.admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 600;
+}
+
+.admin-avatar {
+  width: 36px;
+  height: 36px;
+  background-color: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-page-wrap {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Admin Common Elements */
+.admin-header {
+  margin-bottom: 2rem;
+}
+
+.admin-header h1 {
+  font-size: 1.75rem;
+  color: var(--secondary);
+}
+
+.admin-card {
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* --- Mobile Responsiveness Admin --- */
+@media (max-width: 768px) {
+  .admin-mobile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .admin-mobile-overlay {
+    display: block;
+  }
+
+  .admin-topbar {
+    padding-left: 3.5rem; /* espaco pro botao menu */
+    padding-right: 0.5rem;
+    height: 55px;
+  }
+
+  .search-bar input {
+    width: 120px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .admin-name {
+    display: none;
+  }
+
+  .admin-page-wrap {
+    padding: 1rem 0.5rem;
+  }
+  
+  .admin-card {
+    padding: 1rem;
+  }
+}

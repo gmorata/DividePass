@@ -1,0 +1,95 @@
+.billing-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.payment-methods h2, .invoice-history h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: var(--secondary);
+}
+
+.card-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  max-width: 600px;
+}
+
+.card-brand {
+  display: inline-block;
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  font-weight: 800;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-info p {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.invoice-table th {
+  background: var(--background);
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.invoice-table td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.invoice-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.invoice-table tbody tr:hover {
+  background: rgba(0,0,0,0.01);
+}
+
+.status-badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.pago {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.status-badge.pendente {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.pay-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
