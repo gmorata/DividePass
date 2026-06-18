@@ -192,13 +192,21 @@ export default function Home() {
             <button onClick={() => scrollToSection('servicos')} className="nav-link">Serviços</button>
             <button onClick={() => scrollToSection('depoimentos')} className="nav-link">Depoimentos</button>
             <button onClick={() => scrollToSection('faq')} className="nav-link">FAQ</button>
+            <div className="nav-mobile-actions">
+              <Link onClick={() => setIsMenuOpen(false)} to="/login" className="btn btn-outline btn-full">
+                Entrar
+              </Link>
+              <Link onClick={() => setIsMenuOpen(false)} to="/register" className="btn btn-primary btn-full">
+                Criar Conta
+              </Link>
+            </div>
           </nav>
 
           <div className="navbar-actions">
-            <Link to="/login" className="btn btn-outline">
+            <Link to="/login" className="btn btn-outline navbar-login-btn">
               Entrar
             </Link>
-            <Link to="/register" className="btn btn-primary">
+            <Link to="/register" className="btn btn-primary navbar-register-btn">
               Criar Conta
             </Link>
             <button

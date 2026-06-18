@@ -8,7 +8,7 @@ const corsHeaders = {
 interface CreateSubscriptionBody {
   group_id: string;
   user_id: string;
-  payer_email: string;
+  payer_email?: string;
   amount: number;
   reason: string;
   back_url: string;
@@ -33,7 +33,7 @@ export default {
 
       const { group_id, user_id, payer_email, amount, reason, back_url }: CreateSubscriptionBody = await req.json();
 
-      if (!group_id || !user_id || !payer_email || !amount) {
+      if (!group_id || !user_id || !amount) {
         return new Response(
           JSON.stringify({ error: "Dados incompletos para criar assinatura" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -55,25 +55,32 @@ export default {
       }
 
       // Cria assinatura recorrente no Mercado Pago
+      // A referência principal é o external_reference (group_id:user_id).
+      // O payer_email, se enviado, é apenas uma referência adicional.
+      const mpPayload: Record<string, unknown> = {
+        back_url,
+        reason,
+        external_reference: `${group_id}:${user_id}`,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: amount,
+          currency_id: "BRL",
+        },
+        status: "pending",
+      };
+
+      if (payer_email) {
+        mpPayload.payer_email = payer_email;
+      }
+
       const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${mpAccessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          payer_email,
-          back_url,
-          reason,
-          external_reference: `${group_id}:${user_id}`,
-          auto_recurring: {
-            frequency: 1,
-            frequency_type: "months",
-            transaction_amount: amount,
-            currency_id: "BRL",
-          },
-          status: "pending",
-        }),
+        body: JSON.stringify(mpPayload),
       });
 
       const mpData = await mpResponse.json();

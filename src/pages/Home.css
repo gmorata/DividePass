@@ -132,6 +132,19 @@
   gap: 0.75rem;
 }
 
+.nav-mobile-actions {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--home-border);
+}
+
+.btn-full {
+  width: 100%;
+}
+
 .menu-toggle {
   display: none;
   background: none;
@@ -253,8 +266,30 @@
 .hero-trust {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
   animation: fadeInUp 0.6s ease 0.4s both;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.trust-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+@media (max-width: 480px) {
+  .hero-trust {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .trust-text {
+    align-items: center;
+    text-align: center;
+  }
 }
 
 .trust-avatars {
@@ -961,6 +996,29 @@
 }
 
 @media (max-width: 768px) {
+  .navbar-content {
+    padding: 0 1rem;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .navbar-register-btn {
+    display: none;
+  }
+
+  .navbar-login-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
   .navbar-nav {
     position: fixed;
     top: 70px;
@@ -969,7 +1027,7 @@
     background: rgba(15, 23, 42, 0.98);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--home-border);
-    padding: 1.5rem;
+    padding: 1rem 1.25rem 1.5rem;
     flex-direction: column;
     gap: 0;
     transform: translateY(-100%);
@@ -977,6 +1035,8 @@
     visibility: hidden;
     transition: all 0.3s ease;
     z-index: 99;
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
   }
 
   .navbar-nav-open {
@@ -990,6 +1050,10 @@
     width: 100%;
     text-align: left;
     border-bottom: 1px solid var(--home-border);
+  }
+
+  .nav-mobile-actions {
+    display: flex;
   }
 
   .menu-toggle {
@@ -1062,9 +1126,30 @@
 
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
   }
 
   .hero-title {
-    font-size: 2.25rem;
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .navbar-login-btn {
+    display: none;
+  }
+
+  .navbar-actions {
+    gap: 0.5rem;
   }
 }

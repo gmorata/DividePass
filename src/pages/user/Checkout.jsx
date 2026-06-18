@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { CreditCard, QrCode, Loader2, Shield, ChevronLeft } from 'lucide-react';
+import { Loader2, Shield, ChevronLeft, CreditCard, Calendar, CheckCircle } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
@@ -12,7 +12,6 @@ function Checkout() {
   const { user } = useAuth();
   const { getGroupDetails } = useAppDataContext();
 
-  const [paymentMethod, setPaymentMethod] = useState('pix');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,10 +70,10 @@ function Checkout() {
         body: JSON.stringify({
           group_id: groupId,
           user_id: user.id,
-          payer_email: user.email,
           amount: Number(group.price_per_slot),
           reason: `Assinatura ${service.fullName} - ${group.name}`,
           back_url: `${import.meta.env.VITE_MERCADO_PAGO_BACK_URL || window.location.origin}/dashboard/credentials/${service.id}`,
+          payer_email: user.email,
         }),
       });
 
@@ -105,11 +104,11 @@ function Checkout() {
       </button>
 
       <div className="page-header">
-        <h1>Checkout 💳</h1>
-        <p>Revise os dados e finalize sua assinatura.</p>
+        <h1>Finalizar Assinatura</h1>
+        <p>Revise os dados e siga para o pagamento seguro.</p>
       </div>
 
-      <div className="checkout-grid">
+      <div className="checkout-grid checkout-simple">
         <div className="checkout-summary">
           <h3>Resumo da Assinatura</h3>
           <div className="summary-item summary-service">
@@ -139,63 +138,32 @@ function Checkout() {
           </div>
         </div>
 
-        <div className="checkout-payment">
-          <h3>Forma de Pagamento</h3>
-
-          <div className="payment-methods">
-            <button
-              className={`payment-method ${paymentMethod === 'pix' ? 'active' : ''}`}
-              onClick={() => setPaymentMethod('pix')}
-            >
-              <QrCode size={24} />
-              <div>
-                <strong>PIX</strong>
-                <span>Aprovação instantânea</span>
-              </div>
-            </button>
-            <button
-              className={`payment-method ${paymentMethod === 'card' ? 'active' : ''}`}
-              onClick={() => setPaymentMethod('card')}
-            >
-              <CreditCard size={24} />
-              <div>
-                <strong>Cartão de Crédito</strong>
-                <span>Em até 12x</span>
-              </div>
-            </button>
+        <div className="checkout-payment checkout-payment-simple">
+          <div className="payment-provider">
+            <div className="provider-badge">
+              <Shield size={28} />
+            </div>
+            <h3>Pagamento processado pelo Mercado Pago</h3>
+            <p>
+              Você será redirecionado para o Mercado Pago para concluir o pagamento
+              de forma segura. Pode pagar com PIX, cartão de crédito ou saldo.
+            </p>
           </div>
 
-          {paymentMethod === 'pix' ? (
-            <div className="payment-content">
-              <div className="pix-code">
-                <span>00020126580014BR.GOV.BCB.PIX0136dividepass@pagamento.com520400005303986540612.905802BR5923DividePass6009SAO PAULO62070503***6304E2CA</span>
-              </div>
-              <p className="payment-help">
-                Copie o código PIX acima e finalize o pagamento no seu banco.
-              </p>
-            </div>
-          ) : (
-            <div className="payment-content">
-              <div className="form-row">
-                <label>Número do Cartão</label>
-                <input type="text" placeholder="0000 0000 0000 0000" defaultValue="4111 1111 1111 1111" />
-              </div>
-              <div className="form-row form-row-2">
-                <div>
-                  <label>Validade</label>
-                  <input type="text" placeholder="MM/AA" defaultValue="12/30" />
-                </div>
-                <div>
-                  <label>CVV</label>
-                  <input type="text" placeholder="123" defaultValue="123" />
-                </div>
-              </div>
-              <div className="form-row">
-                <label>Nome no Cartão</label>
-                <input type="text" placeholder="JOÃO DA SILVA" defaultValue="JOÃO DA SILVA" />
-              </div>
-            </div>
-          )}
+          <ul className="payment-benefits">
+            <li>
+              <CheckCircle size={18} />
+              <span>Cobrança automática todo mês</span>
+            </li>
+            <li>
+              <Calendar size={18} />
+              <span>Cancele quando quiser</span>
+            </li>
+            <li>
+              <CreditCard size={18} />
+              <span>PIX, cartão e outros meios</span>
+            </li>
+          </ul>
 
           <button
             className="btn btn-primary btn-full btn-pay"
@@ -205,7 +173,7 @@ function Checkout() {
             {processing ? (
               <>
                 <Loader2 size={20} className="spin" />
-                Processando...
+                Preparando pagamento...
               </>
             ) : (
               <>
@@ -223,7 +191,7 @@ function Checkout() {
 
           <p className="secure-note">
             <Shield size={14} />
-            Pagamento seguro e criptografado.
+            Ambiente criptografado e certificado pelo Mercado Pago.
           </p>
         </div>
       </div>
