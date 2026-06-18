@@ -9,6 +9,8 @@ interface CreatePaymentBody {
   group_id: string;
   user_id: string;
   amount: number;
+  billing_cycle: string;
+  months: number;
   reason: string;
   back_url: string;
 }
@@ -30,7 +32,7 @@ export default {
 
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-      const { group_id, user_id, amount, reason, back_url }: CreatePaymentBody = await req.json();
+      const { group_id, user_id, amount, billing_cycle, months, reason, back_url }: CreatePaymentBody = await req.json();
 
       if (!group_id || !user_id || !amount || !reason) {
         return new Response(
@@ -38,6 +40,9 @@ export default {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      const cycleMonths = months && months > 0 ? months : 1;
+      const cycle = billing_cycle || "monthly";
 
       // Busca dados do grupo e serviço para referência
       const { data: group, error: groupError } = await supabaseAdmin
@@ -69,7 +74,7 @@ export default {
           items: [
             {
               title: reason,
-              description: `Assinatura mensal do grupo ${group.name}`,
+              description: `Assinatura ${cycle} do grupo ${group.name} (${cycleMonths}x ${cycleMonths > 1 ? "meses" : "mês"})`,
               quantity: 1,
               currency_id: "BRL",
               unit_price: amount,
@@ -103,6 +108,7 @@ export default {
           user_id,
           group_id,
           service_id: group.service_id,
+          billing_cycle: cycle,
           mercado_pago_preference_id: mpData.id,
           amount,
           status: "pending",

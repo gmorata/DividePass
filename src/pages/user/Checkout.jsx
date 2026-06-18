@@ -6,6 +6,21 @@ import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import './Checkout.css';
 
+const CYCLE_OPTIONS = {
+  monthly: { label: 'Mensal', months: 1 },
+  quarterly: { label: 'Trimestral', months: 3 },
+  semiannual: { label: 'Semestral', months: 6 },
+  annual: { label: 'Anual', months: 12 },
+};
+
+function monthsForCycle(cycle) {
+  return CYCLE_OPTIONS[cycle]?.months ?? 1;
+}
+
+function formatCurrency(value) {
+  return `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
+}
+
 function Checkout() {
   const { groupId } = useParams();
   const navigate = useNavigate();
@@ -14,6 +29,10 @@ function Checkout() {
 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [selectedCycle, setSelectedCycle] = useState(() => {
+    const details = getGroupDetails(groupId);
+    return details?.group?.billing_cycle || 'monthly';
+  });
 
   const details = getGroupDetails(groupId);
 
@@ -31,6 +50,11 @@ function Checkout() {
   }
 
   const { group, service, spots } = details;
+  const cycleMonths = monthsForCycle(selectedCycle);
+  const cycleDiscount = Number(group.cycle_discount || 0);
+  const baseTotal = Number(group.price_per_slot) * cycleMonths;
+  const discountAmount = baseTotal * (cycleDiscount / 100);
+  const totalAmount = baseTotal - discountAmount;
 
   if (spots <= 0) {
     return (
@@ -70,7 +94,9 @@ function Checkout() {
         body: JSON.stringify({
           group_id: groupId,
           user_id: user.id,
-          amount: Number(group.price_per_slot),
+          amount: totalAmount,
+          billing_cycle: selectedCycle,
+          months: cycleMonths,
           reason: `DividePass - ${service.name || service.full_name}`,
           back_url: `${import.meta.env.VITE_MERCADO_PAGO_BACK_URL || window.location.origin}/payment/return`,
         }),
@@ -125,15 +151,44 @@ function Checkout() {
 
           <div className="summary-row">
             <span>Preço mensal</span>
-            <strong>R$ {Number(group.price_per_slot).toFixed(2).replace('.', ',')}</strong>
+            <strong>{formatCurrency(group.price_per_slot)}</strong>
           </div>
           <div className="summary-row">
             <span>Vagas restantes</span>
             <strong>{spots} {spots === 1 ? 'vaga' : 'vagas'}</strong>
           </div>
+
+          <div className="cycle-selector">
+            <label>Escolha o período de assinatura</label>
+            <div className="cycle-options">
+              {Object.entries(CYCLE_OPTIONS).map(([key, { label, months }]) => {
+                const isSelected = selectedCycle === key;
+                const monthsTotal = Number(group.price_per_slot) * months;
+                const discounted = monthsTotal * (1 - cycleDiscount / 100);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`cycle-option ${isSelected ? 'selected' : ''}`}
+                    onClick={() => setSelectedCycle(key)}
+                  >
+                    <span className="cycle-label">{label}</span>
+                    <span className="cycle-price">{formatCurrency(discounted)}</span>
+                    {months > 1 && cycleDiscount > 0 && (
+                      <span className="cycle-discount">-{cycleDiscount}%</span>
+                    )}
+                    {months > 1 && (
+                      <span className="cycle-months">{months}x</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="summary-row summary-total">
             <span>Total a pagar hoje</span>
-            <strong>R$ {Number(group.price_per_slot).toFixed(2).replace('.', ',')}</strong>
+            <strong>{formatCurrency(totalAmount)}</strong>
           </div>
         </div>
 
@@ -177,7 +232,7 @@ function Checkout() {
             ) : (
               <>
                 <Shield size={18} />
-                Pagar R$ {Number(group.price_per_slot).toFixed(2).replace('.', ',')}
+                Pagar {formatCurrency(totalAmount)}
               </>
             )}
           </button>

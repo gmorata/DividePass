@@ -117,6 +117,10 @@ CREATE TABLE groups (
     service_id      UUID NOT NULL REFERENCES streaming_services(id) ON DELETE CASCADE,
     name            VARCHAR(200) NOT NULL,
     price_per_slot  DECIMAL(10,2) NOT NULL,
+    billing_cycle   VARCHAR(20) NOT NULL DEFAULT 'monthly'
+                        CHECK (billing_cycle IN ('monthly', 'quarterly', 'semiannual', 'annual')),
+    cycle_discount  DECIMAL(5,2) NOT NULL DEFAULT 0
+                        CHECK (cycle_discount >= 0 AND cycle_discount <= 100),
     max_size        INTEGER NOT NULL DEFAULT 4,
     status          VARCHAR(20) NOT NULL DEFAULT 'open',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -158,6 +162,8 @@ CREATE TABLE user_subscriptions (
     group_id                    UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     service_id                  UUID NOT NULL REFERENCES streaming_services(id) ON DELETE CASCADE,
     status                      subscription_status NOT NULL DEFAULT 'active',
+    billing_cycle               VARCHAR(20) NOT NULL DEFAULT 'monthly'
+                                    CHECK (billing_cycle IN ('monthly', 'quarterly', 'semiannual', 'annual')),
     started_at                  DATE NOT NULL DEFAULT CURRENT_DATE,
     expires_at                  DATE,
     amount                      DECIMAL(10,2),
@@ -313,6 +319,8 @@ SELECT
     g.name AS group_name,
     g.max_size,
     g.price_per_slot,
+    g.billing_cycle,
+    g.cycle_discount,
     COUNT(gm.id) AS occupied_spots,
     (g.max_size - COUNT(gm.id)) AS available_spots,
     CASE
@@ -321,7 +329,7 @@ SELECT
     END AS is_full
 FROM groups g
 LEFT JOIN group_members gm ON gm.group_id = g.id AND gm.status = 'active'
-GROUP BY g.id, g.service_id, g.name, g.max_size, g.price_per_slot;
+GROUP BY g.id, g.service_id, g.name, g.max_size, g.price_per_slot, g.billing_cycle, g.cycle_discount;
 
 -- View: Resumo financeiro do admin
 CREATE OR REPLACE VIEW v_admin_financial_summary AS
@@ -502,17 +510,17 @@ BEGIN
 END $$;
 
 -- Grupos (IDs fixos para seeds de relacionamentos)
-INSERT INTO groups (id, service_id, name, price_per_slot, max_size, status)
+INSERT INTO groups (id, service_id, name, price_per_slot, billing_cycle, cycle_discount, max_size, status)
 VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'Netflix - Grupo A', 12.90, 4, 'open'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 'Netflix - Grupo B', 12.90, 4, 'open'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', 'Spotify - Família 1', 8.90, 6, 'open'),
-    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '33333333-3333-3333-3333-333333333333', 'Disney+ - Grupo 1', 9.90, 4, 'open'),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '44444444-4444-4444-4444-444444444444', 'Max - Grupo A', 11.90, 4, 'open'),
-    ('ffffffff-ffff-ffff-ffff-ffffffffffff', '55555555-5555-5555-5555-555555555555', 'Prime - Grupo 1', 10.90, 3, 'open'),
-    ('00000000-0000-0000-0000-000000000000', '66666666-6666-6666-6666-666666666666', 'YouTube - Grupo 1', 8.90, 5, 'open'),
-    ('11111111-1111-1111-1111-111111111112', '77777777-7777-7777-7777-777777777777', 'Globoplay - Grupo 1', 9.90, 4, 'open'),
-    ('22222222-2222-2222-2222-222222222223', '88888888-8888-8888-8888-888888888888', 'Crunchyroll - Grupo 1', 7.90, 4, 'open');
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'Netflix - Grupo A', 12.90, 'monthly', 0, 4, 'open'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 'Netflix - Grupo B', 12.90, 'monthly', 0, 4, 'open'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', 'Spotify - Família 1', 8.90, 'monthly', 0, 6, 'open'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '33333333-3333-3333-3333-333333333333', 'Disney+ - Grupo 1', 9.90, 'monthly', 0, 4, 'open'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '44444444-4444-4444-4444-444444444444', 'Max - Grupo A', 11.90, 'monthly', 0, 4, 'open'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffffff', '55555555-5555-5555-5555-555555555555', 'Prime - Grupo 1', 10.90, 'monthly', 0, 3, 'open'),
+    ('00000000-0000-0000-0000-000000000000', '66666666-6666-6666-6666-666666666666', 'YouTube - Grupo 1', 8.90, 'monthly', 0, 5, 'open'),
+    ('11111111-1111-1111-1111-111111111112', '77777777-7777-7777-7777-777777777777', 'Globoplay - Grupo 1', 9.90, 'monthly', 0, 4, 'open'),
+    ('22222222-2222-2222-2222-222222222223', '88888888-8888-8888-8888-888888888888', 'Crunchyroll - Grupo 1', 7.90, 'monthly', 0, 4, 'open');
 
 -- Credenciais dos Grupos
 INSERT INTO group_credentials (group_id, login_email, login_password, profile_assignment)

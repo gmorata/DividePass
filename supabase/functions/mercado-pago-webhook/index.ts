@@ -65,10 +65,10 @@ export default {
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Busca o grupo para obter service_id
+        // Busca o grupo para obter service_id e ciclo padrão
         const { data: group, error: groupError } = await supabaseAdmin
           .from("groups")
-          .select("service_id, name")
+          .select("service_id, name, billing_cycle, price_per_slot")
           .eq("id", group_id)
           .single();
 
@@ -77,9 +77,25 @@ export default {
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
+        // Busca assinatura existente para preservar ciclo e valor
+        const { data: existingSub } = await supabaseAdmin
+          .from("user_subscriptions")
+          .select("billing_cycle, amount")
+          .eq("user_id", user_id)
+          .eq("group_id", group_id)
+          .maybeSingle();
+
+        const cycle = existingSub?.billing_cycle || group.billing_cycle || "monthly";
+        const cycleMonths =
+          cycle === "quarterly" ? 3 :
+          cycle === "semiannual" ? 6 :
+          cycle === "annual" ? 12 : 1;
+
+        const subscriptionAmount = existingSub?.amount || amount || group.price_per_slot;
+
         // Atualiza ou insere a assinatura do usuário
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
+        expiresAt.setMonth(expiresAt.getMonth() + cycleMonths);
 
         const { error: subError } = await supabaseAdmin
           .from("user_subscriptions")
@@ -87,7 +103,8 @@ export default {
             user_id,
             group_id,
             service_id: group.service_id,
-            amount,
+            billing_cycle: cycle,
+            amount: subscriptionAmount,
             status: "active",
             mercado_pago_status: "approved",
             external_reference: externalReference,
@@ -143,16 +160,16 @@ export default {
           console.error("Error marking invoice as paid:", invoicePaidError);
         }
 
-        // Cria próxima fatura mensal para recorrência interna
+        // Cria próxima fatura para recorrência interna de acordo com o ciclo
         const nextDue = new Date();
-        nextDue.setDate(nextDue.getDate() + 30);
+        nextDue.setMonth(nextDue.getMonth() + cycleMonths);
 
         const { error: nextInvoiceError } = await supabaseAdmin
           .from("invoices")
           .insert({
             user_id,
             group_id,
-            amount,
+            amount: subscriptionAmount,
             due_date: nextDue.toISOString().split("T")[0],
             status: "pending",
           });
