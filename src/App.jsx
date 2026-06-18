@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import PaymentReturn from './pages/PaymentReturn';
 
 // User Imports
 import UserLayout from './pages/user/UserLayout';
@@ -39,6 +40,7 @@ function App() {
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/payment/return" element={<PaymentReturn />} />
 
             {/* User Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout /></ProtectedRoute>}>

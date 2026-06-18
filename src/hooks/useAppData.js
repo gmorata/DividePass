@@ -119,8 +119,17 @@ export function useAppData() {
 
     load();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        load();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user]);
 

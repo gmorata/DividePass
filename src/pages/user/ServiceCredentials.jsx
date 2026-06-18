@@ -9,20 +9,27 @@ import {
   Shield,
   AlertTriangle,
   RefreshCw,
-  X
+  X,
+  Calendar,
+  RotateCcw,
+  Ban
 } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
 import './ServiceCredentials.css';
 
 function ServiceCredentials() {
   const { serviceId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { streamingServices, getActiveServices, isSubscribedToService } = useAppDataContext();
 
   const [showCredentials, setShowCredentials] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
   const [loadingPin, setLoadingPin] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [pin, setPin] = useState(null);
 
   const activeServices = getActiveServices();
@@ -83,6 +90,37 @@ function ServiceCredentials() {
     }, 2000);
   };
 
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Tem certeza que deseja cancelar esta assinatura? Você perderá o acesso imediatamente.')) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const { error: memberError } = await supabase
+        .from('group_members')
+        .update({ status: 'cancelled', left_at: new Date().toISOString() })
+        .eq('group_id', group.id)
+        .eq('user_id', user.id);
+
+      if (memberError) throw memberError;
+
+      const { error: subError } = await supabase
+        .from('user_subscriptions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', activeService.id);
+
+      if (subError) throw subError;
+
+      alert('Assinatura cancelada com sucesso.');
+      navigate('/dashboard/credentials');
+    } catch (err) {
+      alert('Erro ao cancelar assinatura: ' + err.message);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <div key={serviceId} className="fade-in credentials-page">
       <button onClick={() => navigate(-1)} className="back-btn">
@@ -123,6 +161,32 @@ function ServiceCredentials() {
               seus dados de acesso.
             </p>
           </div>
+
+          <div className="credential-meta-grid">
+            <div className="credential-meta-item">
+              <Calendar size={18} />
+              <div>
+                <span>Ativada em</span>
+                <strong>{new Date(activeService.started_at || activeService.created_at).toLocaleDateString('pt-BR')}</strong>
+              </div>
+            </div>
+            <div className="credential-meta-item">
+              <RotateCcw size={18} />
+              <div>
+                <span>Renovação</span>
+                <strong>{activeService.expires_at ? new Date(activeService.expires_at).toLocaleDateString('pt-BR') : 'Mensal'}</strong>
+              </div>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-outline cancel-subscription-btn"
+            onClick={handleCancelSubscription}
+            disabled={cancelling}
+          >
+            <Ban size={18} />
+            {cancelling ? 'Cancelando...' : 'Cancelar Assinatura'}
+          </button>
         </div>
       </div>
 

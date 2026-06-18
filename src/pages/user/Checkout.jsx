@@ -72,7 +72,7 @@ function Checkout() {
           user_id: user.id,
           amount: Number(group.price_per_slot),
           reason: `DividePass - ${service.name || service.full_name}`,
-          back_url: `${import.meta.env.VITE_MERCADO_PAGO_BACK_URL || window.location.origin}/dashboard/credentials/${service.id}`,
+          back_url: `${import.meta.env.VITE_MERCADO_PAGO_BACK_URL || window.location.origin}/payment/return`,
         }),
       });
 
