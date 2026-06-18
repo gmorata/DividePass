@@ -33,3 +33,5 @@ supabase/.temp
 supabase/*
 !supabase/config.toml
 !supabase/functions
+
+.vercel
