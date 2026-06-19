@@ -86,6 +86,7 @@ CREATE TABLE streaming_services (
     color           VARCHAR(7) NOT NULL DEFAULT '#000000',
     icon            VARCHAR(10),
     icon_url        TEXT,
+    slug            TEXT UNIQUE,
     description     TEXT,
     official_price  DECIMAL(10,2),
     max_group_size  INTEGER NOT NULL DEFAULT 4,

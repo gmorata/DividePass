@@ -135,7 +135,7 @@ function UserDashboard() {
                     </span>
                   </div>
                   <Link
-                    to={`/dashboard/catalog/${service.id}`}
+                    to={`/dashboard/catalog/${service.slug || service.id}`}
                     className={`btn btn-full ${totalSpots === 0 ? 'btn-outline' : 'btn-primary'}`}
                   >
                     {totalSpots === 0 ? 'Ver Grupos' : 'Assinar Agora'}

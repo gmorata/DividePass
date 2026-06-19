@@ -161,11 +161,11 @@ export function useAppData() {
     });
   }, [streamingServices, groups, user?.id]);
 
-  const getServiceGroups = useCallback((serviceId) => {
-    const service = getServiceById(serviceId);
-    const serviceGroups = groups.filter(g => g.service_id === serviceId);
+  const getServiceGroups = useCallback((serviceIdOrSlug) => {
+    const service = streamingServices.find(s => s.id === serviceIdOrSlug || s.slug === serviceIdOrSlug);
+    const serviceGroups = groups.filter(g => g.service_id === service?.id);
     return { service, groups: serviceGroups };
-  }, [getServiceById, groups]);
+  }, [streamingServices, groups]);
 
   const getGroupDetails = useCallback((groupId) => {
     const group = groups.find(g => g.id === groupId);
@@ -181,13 +181,15 @@ export function useAppData() {
     };
   }, [groups, getServiceById]);
 
-  const isSubscribedToService = useCallback((serviceId) => {
-    return activeSubscriptions.some(sub => sub.service_id === serviceId);
-  }, [activeSubscriptions]);
+  const isSubscribedToService = useCallback((serviceIdOrSlug) => {
+    const service = streamingServices.find(s => s.id === serviceIdOrSlug || s.slug === serviceIdOrSlug);
+    return activeSubscriptions.some(sub => sub.service_id === service?.id);
+  }, [activeSubscriptions, streamingServices]);
 
-  const getUserSubscriptionForService = useCallback((serviceId) => {
-    return activeSubscriptions.find(sub => sub.service_id === serviceId);
-  }, [activeSubscriptions]);
+  const getUserSubscriptionForService = useCallback((serviceIdOrSlug) => {
+    const service = streamingServices.find(s => s.id === serviceIdOrSlug || s.slug === serviceIdOrSlug);
+    return activeSubscriptions.find(sub => sub.service_id === service?.id);
+  }, [activeSubscriptions, streamingServices]);
 
   const joinGroup = useCallback(async (groupId) => {
     if (!user) return { error: 'Usuário não autenticado' };

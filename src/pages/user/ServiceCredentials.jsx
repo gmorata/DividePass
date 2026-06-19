@@ -33,8 +33,8 @@ function ServiceCredentials() {
   const [pin, setPin] = useState(null);
 
   const activeServices = getActiveServices();
-  const activeService = activeServices.find(item => item.service.id === serviceId);
-  const service = streamingServices.find(s => s.id === serviceId);
+  const activeService = activeServices.find(item => item.service.id === serviceId || item.service.slug === serviceId);
+  const service = streamingServices.find(s => s.id === serviceId || s.slug === serviceId);
   const isSubscribed = isSubscribedToService(serviceId);
 
   if (!service) {
@@ -64,7 +64,7 @@ function ServiceCredentials() {
             Você não possui uma assinatura ativa do {service.name}. Assine um grupo para
             visualizar as credenciais.
           </p>
-          <Link to={`/dashboard/catalog/${service.id}`} className="btn btn-primary">
+          <Link to={`/dashboard/catalog/${service.slug || service.id}`} className="btn btn-primary">
             Ver Grupos Disponíveis
           </Link>
         </div>

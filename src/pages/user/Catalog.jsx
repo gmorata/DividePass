@@ -10,7 +10,7 @@ function Catalog() {
 
   const availableServices = getAvailableServices();
   const selectedService = serviceId
-    ? streamingServices.find(s => s.id === serviceId)
+    ? streamingServices.find(s => s.id === serviceId || s.slug === serviceId)
     : null;
 
   const getActiveMembers = (group) =>
@@ -193,7 +193,7 @@ function Catalog() {
                   </span>
                 </div>
                 <Link
-                  to={`/dashboard/catalog/${service.id}`}
+                  to={`/dashboard/catalog/${service.slug || service.id}`}
                   className={`btn btn-full ${subscribed || totalSpots === 0 ? 'btn-outline' : 'btn-primary'}`}
                 >
                   {subscribed ? 'Já Assinado' : totalSpots === 0 ? 'Ver Grupos' : 'Assinar Agora'}

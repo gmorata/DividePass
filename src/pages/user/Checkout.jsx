@@ -62,7 +62,7 @@ function Checkout() {
         <div className="empty-checkout">
           <h2>Grupo Cheio</h2>
           <p>Este grupo já atingiu o limite de membros.</p>
-          <Link to={`/dashboard/catalog/${service.id}`} className="btn btn-primary">
+          <Link to={`/dashboard/catalog/${service.slug || service.id}`} className="btn btn-primary">
             Ver Outros Grupos
           </Link>
         </div>
