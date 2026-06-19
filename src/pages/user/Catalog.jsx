@@ -25,7 +25,7 @@ function Catalog() {
     getSpots(group, service) === 0;
 
   if (selectedService) {
-    const serviceData = availableServices.find(s => s.id === serviceId);
+    const serviceData = availableServices.find(s => s.id === serviceId || s.slug === serviceId);
     const groups = serviceData?.groups || [];
     const alreadySubscribed = isSubscribedToService(serviceId);
 

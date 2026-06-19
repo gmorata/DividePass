@@ -25,6 +25,7 @@ import UserDetail from './pages/admin/UserDetail';
 import Platforms from './pages/admin/Platforms';
 import Subscriptions from './pages/admin/Subscriptions';
 import Groups from './pages/admin/Groups';
+import GroupForm from './pages/admin/GroupForm';
 import Credentials from './pages/admin/Credentials';
 import Support from './pages/admin/Support';
 import Announcements from './pages/admin/Announcements';
@@ -62,9 +63,11 @@ function App() {
             <Route path="platforms" element={<Platforms />} />
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="groups" element={<Groups />} />
-              <Route path="credentials" element={<Credentials />} />
-              <Route path="support" element={<Support />} />
-              <Route path="announcements" element={<Announcements />} />
+            <Route path="groups/new" element={<GroupForm />} />
+            <Route path="groups/:groupId/edit" element={<GroupForm />} />
+            <Route path="credentials" element={<Credentials />} />
+            <Route path="support" element={<Support />} />
+            <Route path="announcements" element={<Announcements />} />
             </Route>
           </Routes>
         </Router>

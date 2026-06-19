@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   AlertCircle,
-  Check,
-  X,
   Loader2,
   ChevronDown,
   ChevronUp,
@@ -15,114 +13,13 @@ import { supabase } from '../../lib/supabase';
 import './Groups.css';
 
 function Groups() {
+  const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [expandedService, setExpandedService] = useState(null);
   const initialLoadDone = useRef(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState(null);
-
-  const [formData, setFormData] = useState({
-    service_id: '',
-    name: '',
-    price_per_slot: '',
-    billing_cycle: 'monthly',
-    cycle_discount: 0,
-    max_size: 4,
-    rules: '',
-    tags: '',
-    verified: false,
-    status: 'open'
-  });
-
-  const resetForm = () => {
-    setFormData({
-      service_id: services[0]?.id || '',
-      name: '',
-      price_per_slot: '',
-      billing_cycle: 'monthly',
-      cycle_discount: 0,
-      max_size: 4,
-      rules: '',
-      tags: '',
-      verified: false,
-      status: 'open'
-    });
-    setEditingGroup(null);
-  };
-
-  const handleOpenForm = (group = null, serviceId = null) => {
-    if (group) {
-      setEditingGroup(group);
-      setFormData({
-        service_id: group.service_id,
-        name: group.name,
-        price_per_slot: group.price_per_slot,
-        billing_cycle: group.billing_cycle || 'monthly',
-        cycle_discount: group.cycle_discount || 0,
-        max_size: group.max_size,
-        rules: group.rules || '',
-        tags: Array.isArray(group.tags) ? group.tags.join(', ') : '',
-        verified: group.verified || false,
-        status: group.status
-      });
-    } else {
-      resetForm();
-      if (serviceId) {
-        setFormData(prev => ({ ...prev, service_id: serviceId }));
-      }
-    }
-    setIsFormOpen(true);
-  };
-
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    resetForm();
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setError('');
-
-    try {
-      const payload = {
-        ...formData,
-        price_per_slot: parseFloat(formData.price_per_slot),
-        cycle_discount: parseFloat(formData.cycle_discount || 0),
-        max_size: parseInt(formData.max_size, 10),
-        verified: !!formData.verified,
-        tags: formData.tags
-          ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
-          : []
-      };
-
-      if (editingGroup) {
-        const { error: updateError } = await supabase
-          .from('groups')
-          .update(payload)
-          .eq('id', editingGroup.id);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('groups')
-          .insert(payload);
-
-        if (insertError) throw insertError;
-      }
-
-      await fetchData();
-      handleCloseForm();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDelete = async (id) => {
     if (!confirm('Tem certeza que deseja excluir este grupo?')) return;
@@ -239,10 +136,10 @@ function Groups() {
           <h1>Grupos e Rateios</h1>
           <p className="page-subtitle">{groups.length} grupos cadastrados em {services.length} plataformas</p>
         </div>
-        <button className="btn btn-primary" onClick={() => handleOpenForm()}>
+        <Link to="/admin/groups/new" className="btn btn-primary">
           <Plus size={18} />
           Novo Grupo
-        </button>
+        </Link>
       </div>
 
       {error && (
@@ -290,7 +187,7 @@ function Groups() {
                       className="btn btn-sm btn-outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenForm(null, service.id);
+                        navigate(`/admin/groups/new?service=${service.id}`);
                       }}
                     >
                       <Plus size={14} />
@@ -307,7 +204,7 @@ function Groups() {
                         <p>Nenhum grupo cadastrado para {service.name}.</p>
                         <button
                           className="btn btn-outline btn-sm"
-                          onClick={() => handleOpenForm(null, service.id)}
+                          onClick={() => navigate(`/admin/groups/new?service=${service.id}`)}
                         >
                           Criar primeiro grupo
                         </button>
@@ -406,13 +303,13 @@ function Groups() {
                               )}
 
                               <div className="group-card-actions">
-                                <button
+                                <Link
+                                  to={`/admin/groups/${group.id}/edit`}
                                   className="group-btn edit"
-                                  onClick={() => handleOpenForm(group)}
                                 >
                                   <Pencil size={14} />
                                   Editar
-                                </button>
+                                </Link>
                                 <button
                                   className="group-btn delete"
                                   onClick={() => handleDelete(group.id)}
@@ -434,151 +331,7 @@ function Groups() {
         </div>
       )}
 
-      {isFormOpen && (
-        <div className="modal-overlay" onClick={handleCloseForm}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{editingGroup ? 'Editar Grupo' : 'Novo Grupo'}</h2>
-              <button className="modal-close" onClick={handleCloseForm}>
-                <X size={20} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSubmit} className="group-form">
-              <div className="form-group">
-                <label>Plataforma *</label>
-                <select
-                  value={formData.service_id}
-                  onChange={e => setFormData({ ...formData, service_id: e.target.value })}
-                  required
-                >
-                  <option value="">Selecione uma plataforma</option>
-                  {services.map(service => (
-                    <option key={service.id} value={service.id}>
-                      {service.full_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Nome do grupo *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Netflix - Grupo A"
-                  required
-                />
-              </div>
-
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label>Preço por vaga (R$) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price_per_slot}
-                    onChange={e => setFormData({ ...formData, price_per_slot: e.target.value })}
-                    placeholder="12.90"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Vagas do grupo *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.max_size}
-                    onChange={e => setFormData({ ...formData, max_size: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label>Ciclo de faturamento</label>
-                  <select
-                    value={formData.billing_cycle}
-                    onChange={e => setFormData({ ...formData, billing_cycle: e.target.value })}
-                  >
-                    <option value="monthly">Mensal</option>
-                    <option value="quarterly">Trimestral</option>
-                    <option value="semiannual">Semestral</option>
-                    <option value="annual">Anual</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Desconto do ciclo (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={formData.cycle_discount}
-                    onChange={e => setFormData({ ...formData, cycle_discount: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Regras do grupo</label>
-                <textarea
-                  rows={4}
-                  value={formData.rules}
-                  onChange={e => setFormData({ ...formData, rules: e.target.value })}
-                  placeholder="Ex: Não compartilhar a senha; usar apenas 1 tela; pagar até o vencimento..."
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Tags (separadas por vírgula)</label>
-                <input
-                  type="text"
-                  value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="Ex: sem filme infantil, 4k, ultrahd"
-                />
-              </div>
-
-              <div className="form-group checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={formData.verified}
-                    onChange={e => setFormData({ ...formData, verified: e.target.checked })}
-                  />
-                  Grupo verificado (DividePass)
-                </label>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="open">Aberto</option>
-                  <option value="closed">Fechado</option>
-                </select>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn btn-outline" onClick={handleCloseForm}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Salvando...' : (
-                    <><Check size={18} /> Salvar</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
