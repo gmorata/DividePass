@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import './GroupForm.css';
 
@@ -26,10 +26,11 @@ function GroupForm() {
     tags: '',
     verified: false,
     status: 'open',
-    login_email: '',
-    login_password: '',
-    profile_assignment: '',
   });
+
+  const [credentials, setCredentials] = useState([
+    { profile_assignment: '', login_email: '', login_password: '' },
+  ]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -37,6 +38,20 @@ function GroupForm() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleCredChange = (index, field, value) => {
+    setCredentials(prev => prev.map((c, i) =>
+      i === index ? { ...c, [field]: value } : c
+    ));
+  };
+
+  const addCredential = () => {
+    setCredentials(prev => [...prev, { profile_assignment: '', login_email: '', login_password: '' }]);
+  };
+
+  const removeCredential = (index) => {
+    setCredentials(prev => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -52,7 +67,7 @@ function GroupForm() {
             ? supabase.from('groups').select('*').eq('id', groupId).single()
             : Promise.resolve({ data: null }),
           isEditing
-            ? supabase.from('group_credentials').select('*').eq('group_id', groupId).maybeSingle()
+            ? supabase.from('group_credentials').select('*').eq('group_id', groupId).order('id')
             : Promise.resolve({ data: null }),
         ]);
 
@@ -74,10 +89,16 @@ function GroupForm() {
               tags: Array.isArray(group.tags) ? group.tags.join(', ') : '',
               verified: group.verified || false,
               status: group.status || 'open',
-              login_email: credentialsRes.data?.login_email || '',
-              login_password: credentialsRes.data?.login_password || '',
-              profile_assignment: credentialsRes.data?.profile_assignment || '',
             });
+
+            const creds = credentialsRes.data;
+            if (creds && creds.length > 0) {
+              setCredentials(creds.map(c => ({
+                profile_assignment: c.profile_assignment || '',
+                login_email: c.login_email || '',
+                login_password: c.login_password || '',
+              })));
+            }
           }
         } else if (servicesRes.data?.length > 0) {
           const preselectedService = searchParams.get('service');
@@ -138,19 +159,28 @@ function GroupForm() {
         groupIdResult = newGroup.id;
       }
 
-      const credentialPayload = {
-        group_id: groupIdResult,
-        login_email: formData.login_email || '',
-        login_password: formData.login_password || '',
-        profile_assignment: formData.profile_assignment || null,
-      };
+      const validCreds = credentials.filter(c => c.login_email || c.login_password);
 
-      if (credentialPayload.login_email || credentialPayload.login_password) {
-        const { error: credError } = await supabase
+      if (validCreds.length > 0) {
+        if (isEditing) {
+          const { error: deleteError } = await supabase
+            .from('group_credentials')
+            .delete()
+            .eq('group_id', groupIdResult);
+
+          if (deleteError) throw deleteError;
+        }
+
+        const { error: insertError } = await supabase
           .from('group_credentials')
-          .upsert(credentialPayload, { onConflict: 'group_id' });
+          .insert(validCreds.map(c => ({
+            group_id: groupIdResult,
+            login_email: c.login_email,
+            login_password: c.login_password,
+            profile_assignment: c.profile_assignment || null,
+          })));
 
-        if (credError) throw credError;
+        if (insertError) throw insertError;
       }
 
       navigate('/admin/groups');
@@ -257,26 +287,60 @@ function GroupForm() {
         </section>
 
         <section className="form-section">
-          <h2>Credenciais de Acesso</h2>
-          <p className="section-desc">
-            Defina o e-mail e senha que serão exibidos aos assinantes deste grupo.
-            As credenciais aparecem para o usuário <strong>somente após o pagamento</strong>.
-          </p>
-
-          <div className="form-grid">
-            <div className="form-group">
-              <label>E-mail de acesso</label>
-              <input name="login_email" value={formData.login_email} onChange={handleChange} placeholder="netflix.grupo.a@dividepass.com" />
+          <div className="section-header-row">
+            <div>
+              <h2>Credenciais de Acesso</h2>
+              <p className="section-desc">
+                Defina os perfis/telas com e-mail e senha. 
+                As credenciais aparecem para o usuário <strong>somente após o pagamento</strong>.
+                Adicione um perfil para cada tela com senha diferente.
+              </p>
             </div>
-            <div className="form-group">
-              <label>Senha de acesso</label>
-              <input name="login_password" value={formData.login_password} onChange={handleChange} placeholder="••••••••" type="text" />
-            </div>
-            <div className="form-group">
-              <label>Perfil / Tela</label>
-              <input name="profile_assignment" value={formData.profile_assignment} onChange={handleChange} placeholder="Ex: Tela 2, Perfil 1" />
-            </div>
+            <button type="button" className="btn btn-sm btn-outline" onClick={addCredential}>
+              <Plus size={16} />
+              Adicionar Perfil
+            </button>
           </div>
+
+          {credentials.map((cred, index) => (
+            <div key={index} className="credential-entry">
+              <div className="credential-entry-header">
+                <h3>Perfil / Tela {index + 1}</h3>
+                {credentials.length > 1 && (
+                  <button type="button" className="btn-icon danger" onClick={() => removeCredential(index)} title="Remover">
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+              <div className="form-grid cred-fields">
+                <div className="form-group">
+                  <label>Nome do Perfil</label>
+                  <input
+                    value={cred.profile_assignment}
+                    onChange={e => handleCredChange(index, 'profile_assignment', e.target.value)}
+                    placeholder="Ex: Tela 1, Perfil Principal"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>E-mail de acesso</label>
+                  <input
+                    value={cred.login_email}
+                    onChange={e => handleCredChange(index, 'login_email', e.target.value)}
+                    placeholder="netflix.grupo.a@dividepass.com"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Senha de acesso</label>
+                  <input
+                    value={cred.login_password}
+                    onChange={e => handleCredChange(index, 'login_password', e.target.value)}
+                    placeholder="••••••••"
+                    type="text"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </section>
 
         <div className="form-footer">

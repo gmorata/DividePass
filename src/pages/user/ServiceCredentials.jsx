@@ -8,8 +8,6 @@ import {
   ChevronLeft,
   Shield,
   AlertTriangle,
-  RefreshCw,
-  X,
   Calendar,
   RotateCcw,
   Ban
@@ -26,16 +24,55 @@ function ServiceCredentials() {
   const { streamingServices, getActiveServices, isSubscribedToService } = useAppDataContext();
 
   const [showCredentials, setShowCredentials] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
-  const [loadingPin, setLoadingPin] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({});
   const [cancelling, setCancelling] = useState(false);
-  const [pin, setPin] = useState(null);
 
   const activeServices = getActiveServices();
   const activeService = activeServices.find(item => item.service.id === serviceId || item.service.slug === serviceId);
   const service = streamingServices.find(s => s.id === serviceId || s.slug === serviceId);
   const isSubscribed = isSubscribedToService(serviceId);
+
+  const togglePassword = (index) => {
+    setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  const handleCopy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(key);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Tem certeza que deseja cancelar esta assinatura? Você perderá o acesso imediatamente.')) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const { error: memberError } = await supabase
+        .from('group_members')
+        .update({ status: 'cancelled', left_at: new Date().toISOString() })
+        .eq('group_id', activeService.group.id)
+        .eq('user_id', user.id);
+
+      if (memberError) throw memberError;
+
+      const { error: subError } = await supabase
+        .from('user_subscriptions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', activeService.id);
+
+      if (subError) throw subError;
+
+      alert('Assinatura cancelada com sucesso.');
+      navigate('/dashboard/credentials');
+    } catch (err) {
+      alert('Erro ao cancelar assinatura: ' + err.message);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (!service) {
     return (
@@ -73,53 +110,7 @@ function ServiceCredentials() {
   }
 
   const { group } = activeService;
-  const credentials = group.credentials;
-
-  const handleCopy = (text, field) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleFetchPin = () => {
-    setLoadingPin(true);
-    setPin(null);
-    setTimeout(() => {
-      setPin(Math.floor(100000 + Math.random() * 900000).toString());
-      setLoadingPin(false);
-    }, 2000);
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!window.confirm('Tem certeza que deseja cancelar esta assinatura? Você perderá o acesso imediatamente.')) {
-      return;
-    }
-
-    setCancelling(true);
-    try {
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .update({ status: 'cancelled', left_at: new Date().toISOString() })
-        .eq('group_id', group.id)
-        .eq('user_id', user.id);
-
-      if (memberError) throw memberError;
-
-      const { error: subError } = await supabase
-        .from('user_subscriptions')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', activeService.id);
-
-      if (subError) throw subError;
-
-      alert('Assinatura cancelada com sucesso.');
-      navigate('/dashboard/credentials');
-    } catch (err) {
-      alert('Erro ao cancelar assinatura: ' + err.message);
-    } finally {
-      setCancelling(false);
-    }
-  };
+  const credentialsList = Array.isArray(group.credentials) ? group.credentials : [];
 
   return (
     <div key={serviceId} className="fade-in credentials-page">
@@ -140,8 +131,12 @@ function ServiceCredentials() {
               {service.icon}
             </div>
             <div>
-              <h2 style={{ color: service.color }}>{service.fullName}</h2>
-                <span className="profile-badge">{credentials.profile_assignment}</span>
+              <h2 style={{ color: service.color }}>{service.full_name}</h2>
+              {credentialsList.length > 0 && (
+                <span className="profile-badge">
+                  {credentialsList.length} {credentialsList.length === 1 ? 'perfil' : 'perfis'}
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -190,98 +185,89 @@ function ServiceCredentials() {
         </div>
       </div>
 
-      {/* Modal de Credenciais */}
       {showCredentials && (
         <div className="credentials-modal-overlay" onClick={() => setShowCredentials(false)}>
           <div className="credentials-modal" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowCredentials(false)}>
-              <X size={20} />
-            </button>
-
-            <div className="modal-header">
+            <div className="credentials-modal-header">
               <div className="modal-icon" style={{ backgroundColor: service.color }}>
                 {service.icon}
               </div>
               <div>
-                <h2>{service.fullName}</h2>
-              <span className="profile-badge">{credentials.profile_assignment}</span>
+                <h2>{service.full_name}</h2>
+                <span className="modal-group-name">{group.name}</span>
               </div>
+              <button className="modal-close-btn" onClick={() => setShowCredentials(false)}>
+                <span>&times;</span>
+              </button>
             </div>
 
-            <div className="modal-body">
-              <div className="info-group">
-                <label>E-mail de Login</label>
-                <div className="copy-box">
-                  <code>{credentials.login_email}</code>
-                  <button
-                    className="copy-btn"
-                    onClick={() => handleCopy(credentials.login_email, 'email')}
-                    title="Copiar"
-                  >
-                    {copiedField === 'email' ? <Check size={18} /> : <Copy size={18} />}
-                  </button>
+            <div className="credentials-modal-body">
+              {credentialsList.length === 0 ? (
+                <div className="no-credentials">
+                  <AlertTriangle size={24} />
+                  <p>Nenhuma credencial cadastrada para este grupo ainda.</p>
                 </div>
-              </div>
-
-              <div className="info-group">
-                <label>Senha</label>
-                <div className="copy-box">
-                  <code>{showPassword ? credentials.login_password : '••••••••••••'}</code>
-                  <div className="actions">
-                    <button
-                      className="toggle-btn"
-                      onClick={() => setShowPassword(!showPassword)}
-                      title={showPassword ? 'Ocultar' : 'Mostrar'}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                    <button
-                      className="copy-btn"
-                      onClick={() => handleCopy(credentials.login_password, 'password')}
-                      title="Copiar"
-                    >
-                      {copiedField === 'password' ? <Check size={18} /> : <Copy size={18} />}
-                    </button>
-                  </div>
+              ) : credentialsList.length === 1 ? (
+                <div className="single-credential">
+                  {renderCredentialFields(credentialsList[0], 0, showPasswords, togglePassword, copiedField, handleCopy)}
                 </div>
-              </div>
-
-              <div className="pin-section">
-                <div className="pin-header">
-                  <h3>Código de Confirmação (PIN)</h3>
-                  <p>A {service.name} pediu um código por e-mail? Busque-o aqui.</p>
-                </div>
-
-                <div className="pin-box">
-                  {loadingPin ? (
-                    <div className="loader-container">
-                      <div className="spinner"></div>
-                      <span>Buscando na caixa de e-mail...</span>
+              ) : (
+                <div className="multi-credentials">
+                  {credentialsList.map((cred, index) => (
+                    <div key={index} className="cred-profile-card">
+                      <div className="cred-profile-header">
+                        <div className="cred-profile-dot" style={{ backgroundColor: service.color }} />
+                        <h3>{cred.profile_assignment || `Perfil ${index + 1}`}</h3>
+                      </div>
+                      {renderCredentialFields(cred, index, showPasswords, togglePassword, copiedField, handleCopy)}
                     </div>
-                  ) : pin ? (
-                    <div className="pin-result">
-                      <span className="pin-code">{pin}</span>
-                      <span className="pin-time">Recebido agora há pouco</span>
-                    </div>
-                  ) : (
-                    <div className="pin-empty">Nenhum código recente.</div>
-                  )}
-
-                  <button
-                    className="btn btn-outline fetch-pin-btn"
-                    onClick={handleFetchPin}
-                    disabled={loadingPin}
-                  >
-                    <RefreshCw size={16} className={loadingPin ? 'spin' : ''} />
-                    {loadingPin ? 'Buscando...' : 'Atualizar Códigos'}
-                  </button>
+                  ))}
                 </div>
+              )}
+
+              <div className="credentials-modal-footer">
+                <p>Não compartilhe suas credenciais com ninguém.</p>
               </div>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function renderCredentialFields(cred, index, showPasswords, togglePassword, copiedField, handleCopy) {
+  const isVisible = showPasswords[index];
+  return (
+    <>
+      <div className="cred-field">
+        <label>E-mail de Login</label>
+        <div className="cred-field-box">
+          <code>{cred.login_email || '—'}</code>
+          {cred.login_email && (
+            <button className="cred-action-btn" onClick={() => handleCopy(cred.login_email, `email-${index}`)} title="Copiar">
+              {copiedField === `email-${index}` ? <Check size={16} /> : <Copy size={16} />}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="cred-field">
+        <label>Senha</label>
+        <div className="cred-field-box">
+          <code>{isVisible ? cred.login_password : '•'.repeat(Math.max(8, cred.login_password?.length || 8))}</code>
+          {cred.login_password && (
+            <div className="cred-actions">
+              <button className="cred-action-btn" onClick={() => togglePassword(index)} title={isVisible ? 'Ocultar' : 'Mostrar'}>
+                {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+              <button className="cred-action-btn" onClick={() => handleCopy(cred.login_password, `pass-${index}`)} title="Copiar">
+                {copiedField === `pass-${index}` ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
