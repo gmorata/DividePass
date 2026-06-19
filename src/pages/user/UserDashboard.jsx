@@ -4,7 +4,7 @@ import './UserDashboard.css';
 
 function UserDashboard() {
   const navigate = useNavigate();
-  const { currentUser, getActiveServices, getAvailableServices } = useAppDataContext();
+  const { currentUser, getActiveServices, getAvailableServices, isSubscribedToService } = useAppDataContext();
 
   const activeServices = getActiveServices();
   const availableServices = getAvailableServices();
@@ -13,16 +13,6 @@ function UserDashboard() {
     (sum, { group }) => sum + (Number(group?.price_per_slot) || 0),
     0
   );
-
-  const getActiveMembers = (group) =>
-    group.members?.filter(m => m.status === 'active').length || 0;
-
-  const getSpots = (group, service) => {
-    const maxSize = service?.max_group_size || group.max_size;
-    return Math.max(0, maxSize - getActiveMembers(group));
-  };
-
-  const isFull = (group, service) => getSpots(group, service) === 0;
 
   return (
     <div className="fade-in">
@@ -109,14 +99,7 @@ function UserDashboard() {
 
         <div className="available-services-grid">
           {availableServices.map(service => {
-            const openGroups = service.groups.filter(g => !isFull(g, service));
-            const totalSpots = openGroups.reduce(
-              (sum, group) => sum + getSpots(group, service),
-              0
-            );
-            const bestPrice = service.groups.length > 0
-              ? Math.min(...service.groups.map(g => Number(g.price_per_slot)))
-              : 0;
+            const subscribed = isSubscribedToService(service.id);
 
             return (
               <div key={service.id} className="available-service-card">
@@ -124,27 +107,19 @@ function UserDashboard() {
                   className="available-service-header"
                   style={{ backgroundColor: service.color }}
                 >
-                  <div className="available-service-icon">{service.icon}</div>
+                  {service.icon_url ? (
+                    <img src={service.icon_url} alt={service.name} className="available-service-logo" />
+                  ) : (
+                    <div className="available-service-icon">{service.icon || service.name[0]}</div>
+                  )}
                 </div>
                 <div className="available-service-body">
                   <h3>{service.name}</h3>
-                  <p className="available-service-description">{service.description}</p>
-                  <div className="available-service-meta">
-                    <span className="available-service-price">
-                      R$ {bestPrice.toFixed(2).replace('.', ',')}
-                      <small>/mês</small>
-                    </span>
-                    <span className={`available-service-spots ${totalSpots === 0 ? 'empty' : ''}`}>
-                      {totalSpots === 0
-                        ? 'Sem vagas'
-                        : `${totalSpots} ${totalSpots === 1 ? 'vaga' : 'vagas'}`}
-                    </span>
-                  </div>
                   <Link
                     to={`/dashboard/catalog/${service.slug || service.id}`}
-                    className={`btn btn-full ${totalSpots === 0 ? 'btn-outline' : 'btn-primary'}`}
+                    className={`available-service-btn ${subscribed ? 'btn-subscribed' : 'btn-primary'}`}
                   >
-                    {totalSpots === 0 ? 'Ver Grupos' : 'Assinar Agora'}
+                    {subscribed ? 'Já Assinado' : 'Ver Grupos'}
                   </Link>
                 </div>
               </div>

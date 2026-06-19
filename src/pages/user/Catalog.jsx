@@ -157,46 +157,34 @@ function Catalog() {
   return (
     <div className="fade-in catalog-page">
       <div className="page-header">
-        <h1>Catálogo de Serviços 📺</h1>
+        <h1>Catálogo de Serviços</h1>
         <p>Assine novos serviços dividindo o valor com outras pessoas.</p>
       </div>
 
       <div className="catalog-grid">
-        {availableServices.map(service => {
-          const openGroups = service.groups.filter(g => !isFull(g, service));
-          const totalSpots = openGroups.reduce(
-            (sum, group) => sum + getSpots(group, service),
-            0
-          );
-          const bestPrice = service.groups.length > 0
-            ? Math.min(...service.groups.map(g => Number(g.price_per_slot)))
-            : 0;
+        {availableServices.map((service, index) => {
           const subscribed = isSubscribedToService(service.id);
 
           return (
-            <div className="catalog-card" key={service.id}>
+            <div
+              className={`catalog-card ${subscribed ? 'subscribed' : ''}`}
+              key={service.id}
+              style={{ animationDelay: `${index * 0.06}s` }}
+            >
               <div className="catalog-header" style={{ backgroundColor: service.color }}>
-                <div className="catalog-icon">{service.icon}</div>
+                {service.icon_url ? (
+                  <img src={service.icon_url} alt={service.name} className="catalog-logo" />
+                ) : (
+                  <div className="catalog-icon-text">{service.icon || service.name[0]}</div>
+                )}
               </div>
               <div className="catalog-body">
                 <h3>{service.name}</h3>
-                <p className="catalog-description">{service.description}</p>
-                <div className="catalog-info">
-                  <span className="price">
-                    R$ {bestPrice.toFixed(2).replace('.', ',')}
-                    <small>/mês</small>
-                  </span>
-                  <span className={`slots ${totalSpots === 0 ? 'full' : ''}`}>
-                    {totalSpots === 0
-                      ? 'Sem vagas'
-                      : `${totalSpots} ${totalSpots === 1 ? 'vaga disponível' : 'vagas disponíveis'}`}
-                  </span>
-                </div>
                 <Link
                   to={`/dashboard/catalog/${service.slug || service.id}`}
-                  className={`btn btn-full ${subscribed || totalSpots === 0 ? 'btn-outline' : 'btn-primary'}`}
+                  className={`catalog-btn ${subscribed ? 'catalog-btn-subscribed' : 'catalog-btn-primary'}`}
                 >
-                  {subscribed ? 'Já Assinado' : totalSpots === 0 ? 'Ver Grupos' : 'Assinar Agora'}
+                  {subscribed ? 'Já Assinado' : 'Assinar Agora'}
                 </Link>
               </div>
             </div>
