@@ -187,6 +187,35 @@
 }
 
 /* Billing Cycle Selector */
+.checkout-rules {
+  display: flex;
+  gap: 0.75rem;
+  background: rgba(255, 171, 0, 0.05);
+  border: 1px solid rgba(255, 171, 0, 0.15);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: var(--text-main);
+}
+
+.checkout-rules svg {
+  color: #FFAB00;
+  flex-shrink: 0;
+}
+
+.checkout-rules strong {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.checkout-rules p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .cycle-selector {
   margin: 1.25rem 0;
 }

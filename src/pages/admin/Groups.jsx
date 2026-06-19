@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Plus,
-  Users,
   AlertCircle,
   Check,
   X,
@@ -29,7 +29,12 @@ function Groups() {
     service_id: '',
     name: '',
     price_per_slot: '',
+    billing_cycle: 'monthly',
+    cycle_discount: 0,
     max_size: 4,
+    rules: '',
+    tags: '',
+    verified: false,
     status: 'open'
   });
 
@@ -38,7 +43,12 @@ function Groups() {
       service_id: services[0]?.id || '',
       name: '',
       price_per_slot: '',
+      billing_cycle: 'monthly',
+      cycle_discount: 0,
       max_size: 4,
+      rules: '',
+      tags: '',
+      verified: false,
       status: 'open'
     });
     setEditingGroup(null);
@@ -51,7 +61,12 @@ function Groups() {
         service_id: group.service_id,
         name: group.name,
         price_per_slot: group.price_per_slot,
+        billing_cycle: group.billing_cycle || 'monthly',
+        cycle_discount: group.cycle_discount || 0,
         max_size: group.max_size,
+        rules: group.rules || '',
+        tags: Array.isArray(group.tags) ? group.tags.join(', ') : '',
+        verified: group.verified || false,
         status: group.status
       });
     } else {
@@ -77,7 +92,12 @@ function Groups() {
       const payload = {
         ...formData,
         price_per_slot: parseFloat(formData.price_per_slot),
-        max_size: parseInt(formData.max_size, 10)
+        cycle_discount: parseFloat(formData.cycle_discount || 0),
+        max_size: parseInt(formData.max_size, 10),
+        verified: !!formData.verified,
+        tags: formData.tags
+          ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+          : []
       };
 
       if (editingGroup) {
@@ -143,7 +163,7 @@ function Groups() {
         supabase.from('groups').select(`
           *,
           service:service_id (*),
-          members:group_members (*)
+          members:group_members (*, user:user_id (id, name, email))
         `).order('name')
       ]);
 
@@ -177,7 +197,7 @@ function Groups() {
           supabase.from('groups').select(`
             *,
             service:service_id (*),
-            members:group_members (*)
+            members:group_members (*, user:user_id (id, name, email))
           `).order('name')
         ]);
 
@@ -322,23 +342,29 @@ function Groups() {
                                 </span>
                               </div>
 
-                              <div className="group-members">
-                                <Users size={14} />
-                                <div className="member-avatars">
-                                  {group.members?.slice(0, 4).map((member, idx) => (
-                                    <span key={idx} className="member-avatar">
-                                      {member.profile_name?.[0]?.toUpperCase() || '?'}
-                                    </span>
+                              <div className="group-members-list">
+                                <label>Membros ({activeMembers})</label>
+                                <div className="member-list">
+                                  {group.members?.filter(m => m.status === 'active').map(member => (
+                                    <Link
+                                      key={member.id}
+                                      to={`/admin/users/${member.user_id}`}
+                                      className="member-item"
+                                    >
+                                      <span className="member-avatar-sm">
+                                        {member.user?.name?.[0]?.toUpperCase() || member.profile_name?.[0]?.toUpperCase() || '?'}
+                                      </span>
+                                      <div className="member-item-info">
+                                        <strong>{member.user?.name || member.profile_name || 'Usuário'}</strong>
+                                        <span>{member.profile_name ? `Perfil: ${member.profile_name}` : ''}</span>
+                                      </div>
+                                      <span className="member-item-status">{member.status}</span>
+                                    </Link>
                                   ))}
-                                  {activeMembers > 4 && (
-                                    <span className="member-avatar more">
-                                      +{activeMembers - 4}
-                                    </span>
+                                  {activeMembers === 0 && (
+                                    <span className="member-empty">Nenhum membro ativo</span>
                                   )}
                                 </div>
-                                <span className="members-count">
-                                  {activeMembers} {activeMembers === 1 ? 'membro' : 'membros'}
-                                </span>
                               </div>
 
                               <div className="group-price">
@@ -446,6 +472,63 @@ function Groups() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label>Ciclo de faturamento</label>
+                  <select
+                    value={formData.billing_cycle}
+                    onChange={e => setFormData({ ...formData, billing_cycle: e.target.value })}
+                  >
+                    <option value="monthly">Mensal</option>
+                    <option value="quarterly">Trimestral</option>
+                    <option value="semiannual">Semestral</option>
+                    <option value="annual">Anual</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Desconto do ciclo (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.cycle_discount}
+                    onChange={e => setFormData({ ...formData, cycle_discount: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Regras do grupo</label>
+                <textarea
+                  rows={4}
+                  value={formData.rules}
+                  onChange={e => setFormData({ ...formData, rules: e.target.value })}
+                  placeholder="Ex: Não compartilhar a senha; usar apenas 1 tela; pagar até o vencimento..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Tags (separadas por vírgula)</label>
+                <input
+                  type="text"
+                  value={formData.tags}
+                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="Ex: sem filme infantil, 4k, ultrahd"
+                />
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.verified}
+                    onChange={e => setFormData({ ...formData, verified: e.target.checked })}
+                  />
+                  Grupo verificado (DividePass)
+                </label>
               </div>
 
               <div className="form-group">

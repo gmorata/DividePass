@@ -37,3 +37,27 @@ CREATE POLICY "Admins gerenciam credenciais"
     FOR ALL
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins gerenciam assinaturas"
+    ON user_subscriptions
+    FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins gerenciam membros de grupos"
+    ON group_members
+    FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins gerenciam faturas"
+    ON invoices
+    FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins gerenciam pagamentos"
+    ON payments
+    FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());

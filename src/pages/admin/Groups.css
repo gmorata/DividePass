@@ -239,44 +239,90 @@
   color: var(--text-muted);
 }
 
-.group-members {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-muted);
-  font-size: 0.85rem;
+.group-members-list {
   margin-bottom: 1rem;
 }
 
-.member-avatars {
-  display: flex;
+.group-members-list label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
 }
 
-.member-avatar {
-  width: 24px;
-  height: 24px;
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--background);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.member-item:hover {
+  border-color: var(--primary);
+  background: rgba(255, 107, 0, 0.03);
+}
+
+.member-avatar-sm {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #FF8A00);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.member-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-item-info strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-item-info span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.member-item-status {
   font-size: 0.65rem;
   font-weight: 700;
-  margin-left: -0.4rem;
-  border: 2px solid var(--surface);
+  text-transform: uppercase;
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
 }
 
-.member-avatar:first-child {
-  margin-left: 0;
-}
-
-.member-avatar.more {
-  background: var(--secondary);
-}
-
-.members-count {
-  margin-left: 0.35rem;
+.member-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
 }
 
 .group-price {
@@ -466,6 +512,19 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
 }
 
 .modal-footer {

@@ -21,6 +21,7 @@ import ServiceCredentials from './pages/user/ServiceCredentials';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Users from './pages/admin/Users';
+import UserDetail from './pages/admin/UserDetail';
 import Platforms from './pages/admin/Platforms';
 import Subscriptions from './pages/admin/Subscriptions';
 import Groups from './pages/admin/Groups';
@@ -57,6 +58,7 @@ function App() {
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
+            <Route path="users/:userId" element={<UserDetail />} />
             <Route path="platforms" element={<Platforms />} />
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="groups" element={<Groups />} />

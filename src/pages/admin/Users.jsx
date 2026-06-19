@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Phone, Shield, User, MoreVertical, Loader2 } from 'lucide-react';
+import { Search, Phone, Shield, User, Eye, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import './Users.css';
 
@@ -132,9 +133,9 @@ function Users() {
                       </span>
                     </td>
                     <td>
-                      <button className="action-btn">
-                        <MoreVertical size={18} />
-                      </button>
+                      <Link to={`/admin/users/${user.id}`} className="action-btn" title="Ver detalhes">
+                        <Eye size={18} />
+                      </Link>
                     </td>
                   </tr>
                 ))}

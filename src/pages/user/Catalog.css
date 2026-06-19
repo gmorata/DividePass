@@ -308,6 +308,44 @@
   background: var(--secondary);
 }
 
+.group-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.group-tag-item {
+  background: rgba(255, 107, 0, 0.1);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.group-rules {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 171, 0, 0.05);
+  border: 1px solid rgba(255, 171, 0, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.group-rules svg {
+  color: #FFAB00;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.group-rules p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 .group-price {
   display: flex;
   flex-direction: column;

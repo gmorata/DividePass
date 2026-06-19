@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Loader2, Shield, ChevronLeft, CreditCard, Calendar, CheckCircle } from 'lucide-react';
+import { Loader2, Shield, ChevronLeft, CreditCard, Calendar, CheckCircle, ScrollText } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
@@ -148,6 +148,16 @@ function Checkout() {
               <p>{group.name}</p>
             </div>
           </div>
+
+          {group.rules && (
+            <div className="checkout-rules">
+              <ScrollText size={18} />
+              <div>
+                <strong>Regras do grupo</strong>
+                <p>{group.rules}</p>
+              </div>
+            </div>
+          )}
 
           <div className="summary-row">
             <span>Preço mensal</span>

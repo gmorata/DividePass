@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Users, Check, BadgeCheck } from 'lucide-react';
+import { ChevronLeft, Users, Check, BadgeCheck, ScrollText } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import './Catalog.css';
 
@@ -62,7 +62,7 @@ function Catalog() {
                   <h3>
                     {group.name}
                     {group.verified && (
-                      <span className="verified-badge" title="Grupo verificado">
+                      <span className="verified-badge" title="Grupo verificado pela DividePass">
                         <BadgeCheck size={18} />
                       </span>
                     )}
@@ -92,6 +92,14 @@ function Catalog() {
                     </span>
                   </div>
 
+                  {group.tags && group.tags.length > 0 && (
+                    <div className="group-tags">
+                      {group.tags.map((tag, idx) => (
+                        <span key={idx} className="group-tag-item">{tag}</span>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="group-members-preview">
                     <Users size={16} />
                     <div className="member-avatars">
@@ -107,6 +115,13 @@ function Catalog() {
                       )}
                     </div>
                   </div>
+
+                  {group.rules && (
+                    <div className="group-rules">
+                      <ScrollText size={16} />
+                      <p>{group.rules}</p>
+                    </div>
+                  )}
 
                   <div className="group-price">
                     <span className="price-label">Preço por vaga</span>

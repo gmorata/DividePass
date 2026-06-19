@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Check, X, Loader2, ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Loader2, ImageIcon, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import './Platforms.css';
 
@@ -10,6 +10,8 @@ function Platforms() {
   const [error, setError] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPlatform, setEditingPlatform] = useState(null);
+  const [iconFile, setIconFile] = useState(null);
+  const [iconPreview, setIconPreview] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,6 +36,8 @@ function Platforms() {
       status: 'active'
     });
     setEditingPlatform(null);
+    setIconFile(null);
+    setIconPreview('');
   };
 
   const handleOpenForm = (platform = null) => {
@@ -49,6 +53,7 @@ function Platforms() {
         max_group_size: platform.max_group_size,
         status: platform.status
       });
+      setIconPreview(platform.icon_url || '');
     } else {
       resetForm();
     }
@@ -60,14 +65,47 @@ function Platforms() {
     resetForm();
   };
 
+  const handleIconChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Selecione uma imagem.');
+      return;
+    }
+
+    setIconFile(file);
+    setIconPreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
 
     try {
+      let iconUrl = editingPlatform?.icon_url || '';
+
+      if (iconFile) {
+        const fileExt = iconFile.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('platform-icons')
+          .upload(fileName, iconFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('platform-icons')
+          .getPublicUrl(fileName);
+
+        iconUrl = publicUrlData.publicUrl;
+      }
+
       const payload = {
         ...formData,
+        icon_url: iconUrl,
         official_price: formData.official_price ? parseFloat(formData.official_price) : null,
         max_group_size: parseInt(formData.max_group_size, 10)
       };
@@ -193,7 +231,11 @@ function Platforms() {
                   className="platform-icon"
                   style={{ backgroundColor: platform.color }}
                 >
-                  {platform.icon || <ImageIcon size={20} />}
+                  {platform.icon_url ? (
+                    <img src={platform.icon_url} alt={platform.name} />
+                  ) : (
+                    platform.icon || <ImageIcon size={20} />
+                  )}
                 </div>
                 <div className="platform-status">
                   <span className={`status-pill ${platform.status}`}>
@@ -281,14 +323,34 @@ function Platforms() {
               </div>
 
               <div className="form-row-3">
-                <div className="form-group">
-                  <label>Ícone (letra)</label>
+                <div className="form-group icon-upload-group">
+                  <label>Ícone</label>
+                  <div className="icon-upload">
+                    <div className="icon-preview" style={{ backgroundColor: formData.color }}>
+                      {iconPreview ? (
+                        <img src={iconPreview} alt="Preview" />
+                      ) : (
+                        formData.icon || <ImageIcon size={20} />
+                      )}
+                    </div>
+                    <label className="btn btn-outline btn-sm upload-btn">
+                      <Upload size={14} />
+                      Subir imagem
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleIconChange}
+                        hidden
+                      />
+                    </label>
+                  </div>
                   <input
                     type="text"
                     value={formData.icon}
                     onChange={e => setFormData({ ...formData, icon: e.target.value })}
-                    placeholder="N"
+                    placeholder="Letra de fallback (N)"
                     maxLength={3}
+                    className="icon-fallback"
                   />
                 </div>
                 <div className="form-group">
