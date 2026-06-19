@@ -95,7 +95,7 @@ export function useAppData() {
           `).eq('status', 'open'),
           supabase.from('user_subscriptions').select(`
             *,
-            group:group_id (*, credential:group_credentials (*)),
+            group:group_id (*, credential:group_credentials (*), owner:owner_id (id, name)),
             service:service_id (*)
           `).eq('user_id', user.id).eq('status', 'active')
         ]);
@@ -143,7 +143,8 @@ export function useAppData() {
       service: sub.service,
       group: {
         ...sub.group,
-        credentials: sub.group?.credential || []
+        credentials: sub.group?.credential || [],
+        owner: sub.group?.owner || null
       }
     }));
   }, [activeSubscriptions]);

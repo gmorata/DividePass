@@ -175,6 +175,21 @@
   color: var(--text-muted);
 }
 
+.group-creator-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: rgba(255, 107, 0, 0.08);
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.group-creator-tag strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .status {
   padding: 0.25rem 0.75rem;
   border-radius: 2rem;

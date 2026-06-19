@@ -60,6 +60,18 @@ CREATE POLICY "Usuários veem respostas dos seus tickets"
         SELECT 1 FROM support_tickets t WHERE t.id = ticket_replies.ticket_id AND t.user_id = auth.uid()
     ));
 
+-- group_credentials: membros veem credenciais dos seus grupos
+CREATE POLICY "Membros veem credenciais dos seus grupos"
+    ON group_credentials FOR SELECT
+    USING (
+        group_id IN (
+            SELECT gm.group_id
+            FROM group_members gm
+            WHERE gm.user_id = auth.uid()
+            AND gm.status = 'active'
+        )
+    );
+
 -- Tabelas públicas de leitura
 CREATE POLICY "Serviços públicos" ON streaming_services FOR SELECT USING (true);
 CREATE POLICY "Grupos públicos" ON groups FOR SELECT USING (true);

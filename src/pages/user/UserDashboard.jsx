@@ -82,8 +82,14 @@ function UserDashboard() {
                   {service.icon}
                 </div>
                 <div className="service-info">
-                  <h4>{service.fullName}</h4>
-                  <p>{group.credentials?.profile_assignment || 'Perfil Padrão'}</p>
+                  <h4>{service.fullName || service.name}</h4>
+                  <span className="group-creator-tag">
+                    {group.owner_id
+                      ? `Criado por: ${group.owner?.name || 'Usuário'}`
+                      : <strong>Criado por: DividePass</strong>
+                    }
+                  </span>
+                  <p>{group.credentials?.[0]?.profile_assignment || ''}</p>
                 </div>
                 <span className="status active">Ativo</span>
               </button>
