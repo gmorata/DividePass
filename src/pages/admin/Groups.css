@@ -188,9 +188,35 @@
 
 .group-card-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+}
+
+.group-name-wrap h4 {
+  display: flex;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 0.35rem;
+  margin: 0 0 0.2rem 0;
+  font-size: 1rem;
+  color: var(--secondary);
+}
+
+.verified-badge-admin {
+  display: inline-flex;
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.5));
+}
+
+.group-creator {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.creator-admin {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .group-card-header h4 {
@@ -216,16 +242,27 @@
   color: #EF4444;
 }
 
+.group-body-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: stretch;
+}
+
 .group-progress {
-  margin-bottom: 1rem;
+  flex: 1;
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  justify-content: center;
 }
 
 .progress-bar {
-  height: 8px;
-  background: var(--background);
+  height: 6px;
+  background: var(--border);
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 0.35rem;
 }
 
 .progress-fill {
@@ -235,36 +272,29 @@
 }
 
 .progress-text {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .group-members-list {
-  margin-bottom: 1rem;
-}
-
-.group-members-list label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  flex: 2;
+  min-width: 0;
 }
 
 .member-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .member-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0.6rem;
+  gap: 0.4rem;
+  padding: 0.3rem 0.45rem;
   background: var(--background);
-  border-radius: 0.5rem;
+  border-radius: 0.4rem;
   border: 1px solid var(--border);
   text-decoration: none;
   transition: all 0.15s;
@@ -276,15 +306,15 @@
 }
 
 .member-avatar-sm {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), #FF8A00);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -296,17 +326,24 @@
 
 .member-item-info strong {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.member-item-info span {
-  display: block;
-  font-size: 0.7rem;
+.member-empty {
   color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0.35rem 0;
+}
+
+.member-more {
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .member-item-status {

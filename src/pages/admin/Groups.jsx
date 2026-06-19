@@ -163,6 +163,7 @@ function Groups() {
         supabase.from('groups').select(`
           *,
           service:service_id (*),
+          owner:owner_id (id, name),
           members:group_members (*, user:user_id (id, name, email))
         `).order('name')
       ]);
@@ -197,6 +198,7 @@ function Groups() {
           supabase.from('groups').select(`
             *,
             service:service_id (*),
+            owner:owner_id (id, name),
             members:group_members (*, user:user_id (id, name, email))
           `).order('name')
         ]);
@@ -321,49 +323,70 @@ function Groups() {
                           return (
                             <div key={group.id} className={`group-card ${full ? 'group-full' : ''}`}>
                               <div className="group-card-header">
-                                <h4>{group.name}</h4>
+                                <div className="group-name-wrap">
+                                  <h4>
+                                    {group.name}
+                                    {group.verified && (
+                                      <span className="verified-badge-admin" title="Verificado pela DividePass">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6">
+                                          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </h4>
+                                  <span className="group-creator">
+                                    {group.owner_id
+                                      ? `Criado por: ${group.owner?.name || 'Usuário'}`
+                                      : <strong className="creator-admin">Criado por: DividePass</strong>
+                                    }
+                                  </span>
+                                </div>
                                 <span className={`group-tag ${full ? 'full' : 'open'}`}>
                                   {full ? 'Cheio' : `${spots} ${spots === 1 ? 'vaga' : 'vagas'}`}
                                 </span>
                               </div>
 
-                              <div className="group-progress">
-                                <div className="progress-bar">
-                                  <div
-                                    className="progress-fill"
-                                    style={{
-                                      width: `${(activeMembers / maxSize) * 100}%`,
-                                      backgroundColor: full ? '#EF4444' : '#22C55E'
-                                    }}
-                                  />
+                              <div className="group-body-row">
+                                <div className="group-progress">
+                                  <div className="progress-bar">
+                                    <div
+                                      className="progress-fill"
+                                      style={{
+                                        width: `${(activeMembers / maxSize) * 100}%`,
+                                        backgroundColor: full ? '#EF4444' : '#22C55E'
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="progress-text">
+                                    {activeMembers} de {maxSize} membros
+                                  </span>
                                 </div>
-                                <span className="progress-text">
-                                  {activeMembers} de {maxSize} membros
-                                </span>
-                              </div>
 
-                              <div className="group-members-list">
-                                <label>Membros ({activeMembers})</label>
-                                <div className="member-list">
-                                  {group.members?.filter(m => m.status === 'active').map(member => (
-                                    <Link
-                                      key={member.id}
-                                      to={`/admin/users/${member.user_id}`}
-                                      className="member-item"
-                                    >
-                                      <span className="member-avatar-sm">
-                                        {member.user?.name?.[0]?.toUpperCase() || member.profile_name?.[0]?.toUpperCase() || '?'}
-                                      </span>
-                                      <div className="member-item-info">
-                                        <strong>{member.user?.name || member.profile_name || 'Usuário'}</strong>
-                                        <span>{member.profile_name ? `Perfil: ${member.profile_name}` : ''}</span>
-                                      </div>
-                                      <span className="member-item-status">{member.status}</span>
-                                    </Link>
-                                  ))}
-                                  {activeMembers === 0 && (
-                                    <span className="member-empty">Nenhum membro ativo</span>
-                                  )}
+                                <div className="group-members-list">
+                                  <div className="member-list">
+                                    {group.members?.filter(m => m.status === 'active').slice(0, 3).map(member => (
+                                      <Link
+                                        key={member.id}
+                                        to={`/admin/users/${member.user_id}`}
+                                        className="member-item"
+                                      >
+                                        <span className="member-avatar-sm">
+                                          {member.user?.name?.[0]?.toUpperCase() || '?'}
+                                        </span>
+                                        <div className="member-item-info">
+                                          <strong>{member.user?.name || 'Usuário'}</strong>
+                                        </div>
+                                      </Link>
+                                    ))}
+                                    {activeMembers > 3 && (
+                                      <Link to={`/admin/groups`} className="member-item member-more">
+                                        +{activeMembers - 3} mais
+                                      </Link>
+                                    )}
+                                    {activeMembers === 0 && (
+                                      <span className="member-empty">Nenhum membro</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
