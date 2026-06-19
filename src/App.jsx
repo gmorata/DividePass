@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import PaymentReturn from './pages/PaymentReturn';
+import NotFound from './pages/NotFound';
 
 // User Imports
 import UserLayout from './pages/user/UserLayout';
@@ -69,6 +70,8 @@ function App() {
             <Route path="support" element={<Support />} />
             <Route path="announcements" element={<Announcements />} />
             </Route>
+
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
       </AppDataProvider>
