@@ -84,38 +84,50 @@ function Subscriptions() {
 
       if (memberError) throw memberError;
 
-      window.location.reload();
+      setSubscriptions(prev =>
+        prev.map(s => s.id === sub.id ? { ...s, status: 'cancelled', updated_at: now } : s)
+      );
     } catch (err) {
-      alert('Erro ao cancelar assinatura: ' + err.message);
+      setError('Erro ao cancelar: ' + err.message);
     }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError('');
 
     try {
+      const payload = {
+        amount: Number(editing.amount),
+        billing_cycle: editing.billing_cycle,
+        status: editing.status,
+        started_at: editing.started_at || null,
+        expires_at: editing.expires_at || null,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error: subError } = await supabase
         .from('user_subscriptions')
-        .update({
-          amount: Number(editing.amount),
-          billing_cycle: editing.billing_cycle,
-          status: editing.status,
-          started_at: editing.started_at,
-          expires_at: editing.expires_at,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq('id', editing.id);
 
       if (subError) throw subError;
 
+      setSubscriptions(prev =>
+        prev.map(s => s.id === editing.id ? { ...s, ...payload } : s)
+      );
       setEditing(null);
-      window.location.reload();
     } catch (err) {
-      alert('Erro ao salvar: ' + err.message);
+      setError('Erro ao salvar: ' + err.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const toInputDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toISOString().split('T')[0];
   };
 
   const statusLabel = (status) => ({
@@ -339,7 +351,7 @@ function Subscriptions() {
                   <label>Início</label>
                   <input
                     type="date"
-                    value={editing.started_at || ''}
+                    value={toInputDate(editing.started_at)}
                     onChange={(e) => setEditing({ ...editing, started_at: e.target.value })}
                   />
                 </div>
@@ -347,7 +359,7 @@ function Subscriptions() {
                   <label>Vencimento</label>
                   <input
                     type="date"
-                    value={editing.expires_at || ''}
+                    value={toInputDate(editing.expires_at)}
                     onChange={(e) => setEditing({ ...editing, expires_at: e.target.value })}
                   />
                 </div>
