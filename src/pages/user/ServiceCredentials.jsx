@@ -110,7 +110,9 @@ function ServiceCredentials() {
   }
 
   const { group } = activeService;
-  const credentialsList = Array.isArray(group.credentials) ? group.credentials : [];
+  const credentialsList = Array.isArray(group.credentials)
+    ? group.credentials.filter(c => !c.assigned_to || c.assigned_to === user?.id)
+    : [];
 
   return (
     <div key={serviceId} className="fade-in credentials-page">

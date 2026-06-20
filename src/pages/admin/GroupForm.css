@@ -189,6 +189,22 @@
   color: var(--secondary);
 }
 
+.credential-entry-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assigned-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  white-space: nowrap;
+}
+
 .cred-fields {
   grid-template-columns: 1fr 1fr 1fr;
 }

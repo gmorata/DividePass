@@ -67,7 +67,7 @@ function GroupForm() {
             ? supabase.from('groups').select('*').eq('id', groupId).single()
             : Promise.resolve({ data: null }),
           isEditing
-            ? supabase.from('group_credentials').select('*').eq('group_id', groupId).order('id')
+            ? supabase.from('group_credentials').select('*, assigned_user:assigned_to (id, name, email)').eq('group_id', groupId).order('id')
             : Promise.resolve({ data: null }),
         ]);
 
@@ -94,9 +94,12 @@ function GroupForm() {
             const creds = credentialsRes.data;
             if (creds && creds.length > 0) {
               setCredentials(creds.map(c => ({
+                id: c.id,
                 profile_assignment: c.profile_assignment || '',
                 login_email: c.login_email || '',
                 login_password: c.login_password || '',
+                assigned_to: c.assigned_to || null,
+                assigned_user: c.assigned_user || null,
               })));
             }
           }
@@ -161,26 +164,55 @@ function GroupForm() {
 
       const validCreds = credentials.filter(c => c.login_email || c.login_password);
 
-      if (validCreds.length > 0) {
-        if (isEditing) {
-          const { error: deleteError } = await supabase
-            .from('group_credentials')
-            .delete()
-            .eq('group_id', groupIdResult);
+      if (isEditing) {
+        const existingIds = validCreds.filter(c => c.id).map(c => c.id);
 
-          if (deleteError) throw deleteError;
+        if (existingIds.length > 0) {
+          for (const c of validCreds.filter(c => c.id)) {
+            const { error } = await supabase
+              .from('group_credentials')
+              .update({
+                login_email: c.login_email,
+                login_password: c.login_password,
+                profile_assignment: c.profile_assignment || null,
+              })
+              .eq('id', c.id);
+            if (error) throw error;
+          }
         }
 
-        const { error: insertError } = await supabase
+        const { error: deleteError } = await supabase
           .from('group_credentials')
-          .insert(validCreds.map(c => ({
-            group_id: groupIdResult,
-            login_email: c.login_email,
-            login_password: c.login_password,
-            profile_assignment: c.profile_assignment || null,
-          })));
+          .delete()
+          .eq('group_id', groupIdResult)
+          .not('id', 'in', `(${existingIds.length > 0 ? existingIds.join(',') : '00000000-0000-0000-0000-000000000000'})`);
 
-        if (insertError) throw insertError;
+        if (deleteError) throw deleteError;
+
+        const newCreds = validCreds.filter(c => !c.id);
+        if (newCreds.length > 0) {
+          const { error: insertError } = await supabase
+            .from('group_credentials')
+            .insert(newCreds.map(c => ({
+              group_id: groupIdResult,
+              login_email: c.login_email,
+              login_password: c.login_password,
+              profile_assignment: c.profile_assignment || null,
+            })));
+          if (insertError) throw insertError;
+        }
+      } else {
+        if (validCreds.length > 0) {
+          const { error: insertError } = await supabase
+            .from('group_credentials')
+            .insert(validCreds.map(c => ({
+              group_id: groupIdResult,
+              login_email: c.login_email,
+              login_password: c.login_password,
+              profile_assignment: c.profile_assignment || null,
+            })));
+          if (insertError) throw insertError;
+        }
       }
 
       navigate('/admin/groups');
@@ -306,11 +338,18 @@ function GroupForm() {
             <div key={index} className="credential-entry">
               <div className="credential-entry-header">
                 <h3>Perfil / Tela {index + 1}</h3>
-                {credentials.length > 1 && (
-                  <button type="button" className="btn-icon danger" onClick={() => removeCredential(index)} title="Remover">
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <div className="credential-entry-badges">
+                  {cred.assigned_user && (
+                    <span className="assigned-badge">
+                      Atribuído a: {cred.assigned_user.name || cred.assigned_user.email}
+                    </span>
+                  )}
+                  {credentials.length > 1 && (
+                    <button type="button" className="btn-icon danger" onClick={() => removeCredential(index)} title="Remover">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="form-grid cred-fields">
                 <div className="form-group">

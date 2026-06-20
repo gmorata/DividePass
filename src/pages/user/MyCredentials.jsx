@@ -1,10 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ChevronRight } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
+import { useAuth } from '../../hooks/useAuth';
 import './MyCredentials.css';
 
 function MyCredentials() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { getActiveServices } = useAppDataContext();
 
   const activeServices = getActiveServices();
@@ -42,7 +44,10 @@ function MyCredentials() {
               </div>
               <div className="credential-list-info">
                 <h3>{service.full_name || service.fullName || service.name}</h3>
-                <p>{group.name}{group.credentials?.[0]?.profile_assignment ? ` • ${group.credentials[0].profile_assignment}` : ''}</p>
+                <p>{group.name}{(() => {
+                  const myCred = group.credentials?.find(c => !c.assigned_to || c.assigned_to === user?.id);
+                  return myCred?.profile_assignment ? ` • ${myCred.profile_assignment}` : '';
+                })()}</p>
               </div>
               <span className="credential-list-action">
                 Acessar
