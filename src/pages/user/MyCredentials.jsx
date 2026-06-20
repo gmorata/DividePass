@@ -34,15 +34,15 @@ function MyCredentials() {
             <button
               key={group.id}
               className="credential-list-card"
-              onClick={() => navigate(`/dashboard/credentials/${service.id}`)}
+              onClick={() => navigate(`/dashboard/credentials/${service.slug || service.id}`)}
               style={{ '--service-color': service.color }}
             >
               <div className="credential-list-icon" style={{ backgroundColor: service.color }}>
                 {service.icon}
               </div>
               <div className="credential-list-info">
-                <h3>{service.fullName}</h3>
-                <p>{group.name} • {group.credentials.profile}</p>
+                <h3>{service.full_name || service.fullName || service.name}</h3>
+                <p>{group.name}{group.credentials?.[0]?.profile_assignment ? ` • ${group.credentials[0].profile_assignment}` : ''}</p>
               </div>
               <span className="credential-list-action">
                 Acessar

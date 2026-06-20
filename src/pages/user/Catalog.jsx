@@ -45,7 +45,7 @@ function Catalog() {
           <div className="info-banner">
             <Check size={18} />
             Você já possui uma assinatura ativa do {selectedService.name}.
-            <Link to={`/dashboard/credentials/${serviceId}`}>Ver credenciais</Link>
+            <Link to={`/dashboard/credentials/${selectedService?.slug || serviceId}`}>Ver credenciais</Link>
           </div>
         )}
 

@@ -65,7 +65,7 @@ function UserDashboard() {
               <button
                 key={group.id}
                 className="service-card active-service-card"
-                onClick={() => navigate(`/dashboard/credentials/${service.id}`)}
+                onClick={() => navigate(`/dashboard/credentials/${service.slug || service.id}`)}
                 style={{ '--service-color': service.color }}
               >
                 <div className="service-icon" style={{ backgroundColor: service.color }}>

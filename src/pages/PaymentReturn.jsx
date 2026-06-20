@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, Loader2, ArrowRight, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAppDataContext } from '../contexts/AppDataContext';
 import './PaymentReturn.css';
 
 function PaymentReturn() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { streamingServices } = useAppDataContext();
   const [status, setStatus] = useState('loading');
   const [serviceId, setServiceId] = useState(null);
   const [groupName, setGroupName] = useState('');
@@ -62,6 +64,8 @@ function PaymentReturn() {
   }, [paymentId, externalReference, mpStatus]);
 
   const renderContent = () => {
+    const svc = serviceId ? streamingServices.find(s => s.id === serviceId) : null;
+    const svcSlug = svc?.slug || serviceId;
     switch (status) {
       case 'loading':
         return (
@@ -83,7 +87,7 @@ function PaymentReturn() {
             </p>
             <div className="return-actions">
               {serviceId && (
-                <Link to={`/dashboard/credentials/${serviceId}`} className="btn btn-primary">
+                <Link to={`/dashboard/credentials/${svcSlug}`} className="btn btn-primary">
                   Ver Credenciais
                   <ArrowRight size={18} />
                 </Link>
@@ -109,7 +113,7 @@ function PaymentReturn() {
                 Ir para Dashboard
               </Link>
               {serviceId && (
-                <Link to={`/dashboard/credentials/${serviceId}`} className="btn btn-outline">
+                <Link to={`/dashboard/credentials/${svcSlug}`} className="btn btn-outline">
                   Ver Credenciais
                 </Link>
               )}
