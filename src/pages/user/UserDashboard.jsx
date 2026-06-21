@@ -76,15 +76,6 @@ function UserDashboard() {
           <span className="metric-subtitle">Fatura de R$ {totalMonthly.toFixed(2).replace('.', ',')}</span>
         </div>
         <div className="metric-card">
-          <h3>Serviços Ativos</h3>
-          <p className="metric-value">{activeServices.length}</p>
-          <span className="metric-subtitle">
-            {activeServices.length > 0
-              ? activeServices.map(({ service }) => service.name).join(', ')
-              : 'Nenhum serviço ativo'}
-          </span>
-        </div>
-        <div className="metric-card">
           <h3>Economia Estimada</h3>
           <p className="metric-value positive">R$ {(totalMonthly * 2).toFixed(2).replace('.', ',')}</p>
           <span className="metric-subtitle">este mês rateando</span>
