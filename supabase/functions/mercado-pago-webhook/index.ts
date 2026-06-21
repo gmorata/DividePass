@@ -65,10 +65,10 @@ export default {
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Busca o grupo para obter service_id e ciclo padrão
+        // Busca o grupo para obter service_id, ciclo e valor REAL da assinatura
         const { data: group, error: groupError } = await supabaseAdmin
           .from("groups")
-          .select("service_id, name, billing_cycle, price_per_slot")
+          .select("service_id, name, billing_cycle, price_per_slot, has_entrance_fee, entrance_fee, available_cycles")
           .eq("id", group_id)
           .single();
 
@@ -91,7 +91,9 @@ export default {
           cycle === "semiannual" ? 6 :
           cycle === "annual" ? 12 : 1;
 
-        const subscriptionAmount = existingSub?.amount || amount || group.price_per_slot;
+        // O valor da assinatura é sempre o preço base × meses do ciclo
+        // NÃO inclui entrance_fee (que é cobrado apenas 1x)
+        const subscriptionAmount = group.price_per_slot * cycleMonths;
 
         // Atualiza ou insere a assinatura do usuário
         const expiresAt = new Date();
@@ -131,6 +133,9 @@ export default {
         }
 
         // Registra o pagamento
+        const entranceFeeAmount = group.has_entrance_fee ? Number(group.entrance_fee || 0) : 0;
+        const isEntrancePayment = entranceFeeAmount > 0 && amount > subscriptionAmount;
+
         const { error: paymentError } = await supabaseAdmin
           .from("payments")
           .insert({
@@ -140,6 +145,9 @@ export default {
             status: "paid",
             transaction_code: String(resourceId),
             paid_at: paidAt,
+            notes: isEntrancePayment
+              ? JSON.stringify({ subscription: subscriptionAmount, entrance_fee: entranceFeeAmount })
+              : null,
           });
 
         if (paymentError) {
@@ -176,6 +184,35 @@ export default {
 
         if (nextInvoiceError) {
           console.error("Error creating next invoice:", nextInvoiceError);
+        }
+
+        // Processa referral: marca como completo e dá bônus se mesmo grupo
+        try {
+          const { data: referral } = await supabaseAdmin
+            .from("referrals")
+            .select("id, referrer_id, group_id, points")
+            .eq("invitee_id", user_id)
+            .eq("status", "pending")
+            .maybeSingle();
+
+          if (referral) {
+            const isSameGroup = referral.group_id === group_id;
+            const bonusPoints = isSameGroup ? 5 : 0;
+            const currentPoints = referral.points || 0;
+            const totalPoints = currentPoints + 10 + bonusPoints;
+
+            await supabaseAdmin
+              .from("referrals")
+              .update({
+                status: "completed",
+                points: totalPoints,
+                completed_at: new Date().toISOString(),
+                group_id: group_id
+              })
+              .eq("id", referral.id);
+          }
+        } catch (refErr) {
+          console.error("Error processing referral:", refErr);
         }
       } else if (topic === "subscription_preapproval" || topic === "preapproval") {
         // Mantido para compatibilidade com eventuais assinaturas antigas

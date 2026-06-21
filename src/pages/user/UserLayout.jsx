@@ -44,6 +44,8 @@ function UserLayout() {
           <Link onClick={closeMenu} to="/dashboard/catalog" className={`nav-item ${isActive('/dashboard/catalog')}`}>Catálogo</Link>
           <Link onClick={closeMenu} to="/dashboard/credentials" className={`nav-item ${isActive('/dashboard/credentials')}`}>Minhas Credenciais</Link>
           <Link onClick={closeMenu} to="/dashboard/billing" className={`nav-item ${isActive('/dashboard/billing')}`}>Financeiro</Link>
+          <Link onClick={closeMenu} to="/dashboard/support" className={`nav-item ${isActive('/dashboard/support')}`}>Suporte</Link>
+          <Link onClick={closeMenu} to="/dashboard/share" className={`nav-item ${isActive('/dashboard/share')}`}>Convidar Amigos</Link>
         </nav>
           <div className="sidebar-footer">
           <div className="user-info">

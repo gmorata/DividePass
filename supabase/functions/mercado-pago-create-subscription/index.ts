@@ -13,6 +13,7 @@ interface CreatePaymentBody {
   months: number;
   reason: string;
   back_url: string;
+  referral_code?: string;
 }
 
 export default {
@@ -32,7 +33,7 @@ export default {
 
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-      const { group_id, user_id, amount, billing_cycle, months, reason, back_url }: CreatePaymentBody = await req.json();
+      const { group_id, user_id, amount, billing_cycle, months, reason, back_url, referral_code }: CreatePaymentBody = await req.json();
 
       if (!group_id || !user_id || !amount || !reason) {
         return new Response(
@@ -64,6 +65,15 @@ export default {
       // Cria preferência de pagamento no Mercado Pago Checkout Pro.
       // Permite que qualquer conta do Mercado Pago efetue o pagamento,
       // pois a identificação do cliente é feita pelo external_reference.
+      // Verifica se tem entrada
+      const hasEntrance = group.has_entrance_fee && Number(group.entrance_fee || 0) > 0;
+      const entranceValue = hasEntrance ? Number(group.entrance_fee) : 0;
+      const subValue = amount - entranceValue;
+
+      const itemDescription = hasEntrance
+        ? `Assinatura ${cycleMonths}x ${cycleMonths > 1 ? "meses" : "mês"}: R$ ${subValue.toFixed(2)} + Taxa de entrada: R$ ${entranceValue.toFixed(2)} (pagamento único)`
+        : `Assinatura ${cycle} do grupo ${group.name} (${cycleMonths}x ${cycleMonths > 1 ? "meses" : "mês"})`;
+
       const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
         method: "POST",
         headers: {
@@ -74,7 +84,7 @@ export default {
           items: [
             {
               title: reason,
-              description: `Assinatura ${cycle} do grupo ${group.name} (${cycleMonths}x ${cycleMonths > 1 ? "meses" : "mês"})`,
+              description: itemDescription,
               quantity: 1,
               currency_id: "BRL",
               unit_price: amount,
@@ -88,6 +98,7 @@ export default {
           },
           auto_return: "approved",
           notification_url: webhookUrl,
+          statement_descriptor: "DIVIDEPASS",
         }),
       });
 
@@ -102,6 +113,9 @@ export default {
       }
 
       // Registra a assinatura pendente no Supabase
+      // amount na assinatura é o valor SEM entrada (só recorrente)
+      const subscriptionOnlyAmount = group.price_per_slot * cycleMonths;
+
       const { error: upsertError } = await supabaseAdmin
         .from("user_subscriptions")
         .upsert({
@@ -110,7 +124,7 @@ export default {
           service_id: group.service_id,
           billing_cycle: cycle,
           mercado_pago_preference_id: mpData.id,
-          amount,
+          amount: subscriptionOnlyAmount,
           status: "pending",
           mercado_pago_status: "pending",
           external_reference: externalReference,
@@ -121,19 +135,52 @@ export default {
         console.error("Supabase upsert error:", upsertError);
       }
 
-      // Cria fatura pendente para o primeiro mês
+      // Cria fatura pendente para o primeiro ciclo (sem entrada)
       const { error: invoiceError } = await supabaseAdmin
         .from("invoices")
         .insert({
           user_id,
           group_id,
-          amount,
+          amount: subscriptionOnlyAmount,
           due_date: new Date().toISOString().split("T")[0],
           status: "pending",
         });
 
       if (invoiceError) {
         console.error("Invoice insert error:", invoiceError);
+      }
+
+      // Registra referral se código foi fornecido
+      if (referral_code) {
+        try {
+          const { data: referrer } = await supabaseAdmin
+            .from("user_referral_codes")
+            .select("user_id")
+            .eq("referral_code", referral_code)
+            .maybeSingle();
+
+          if (referrer && referrer.user_id !== user_id) {
+            const existingReferral = await supabaseAdmin
+              .from("referrals")
+              .select("id")
+              .eq("invitee_id", user_id)
+              .eq("referral_code", referral_code)
+              .maybeSingle();
+
+            if (!existingReferral.data) {
+              await supabaseAdmin.from("referrals").insert({
+                referrer_id: referrer.user_id,
+                invitee_id: user_id,
+                referral_code: referral_code,
+                group_id: group_id,
+                status: "pending",
+                points: 10
+              });
+            }
+          }
+        } catch (refErr) {
+          console.error("Error creating referral:", refErr);
+        }
       }
 
       return Response.json(

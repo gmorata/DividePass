@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthProvider';
 import { AppDataProvider } from './contexts/AppDataContext';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -17,6 +18,10 @@ import MyCredentials from './pages/user/MyCredentials';
 import Billing from './pages/user/Billing';
 import Checkout from './pages/user/Checkout';
 import ServiceCredentials from './pages/user/ServiceCredentials';
+import UserSupport from './pages/user/Support';
+import CreateTicket from './pages/user/CreateTicket';
+import TicketDetail from './pages/user/TicketDetail';
+import Share from './pages/user/Share';
 
 // Admin Imports
 import AdminLayout from './pages/admin/AdminLayout';
@@ -24,17 +29,21 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import Users from './pages/admin/Users';
 import UserDetail from './pages/admin/UserDetail';
 import Platforms from './pages/admin/Platforms';
+import PlatformForm from './pages/admin/PlatformForm';
 import Subscriptions from './pages/admin/Subscriptions';
 import Groups from './pages/admin/Groups';
 import GroupForm from './pages/admin/GroupForm';
 import Credentials from './pages/admin/Credentials';
 import Support from './pages/admin/Support';
+import AdminTicketDetail from './pages/admin/AdminTicketDetail';
 import Announcements from './pages/admin/Announcements';
+import InterestList from './pages/admin/InterestList';
 
 import './App.css';
 
 function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <AppDataProvider>
         <Router>
@@ -44,16 +53,21 @@ function App() {
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/payment/return" element={<PaymentReturn />} />
+            <Route path="/checkout/:groupSlug" element={<Checkout />} />
 
             {/* User Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout /></ProtectedRoute>}>
               <Route index element={<UserDashboard />} />
               <Route path="catalog" element={<Catalog />} />
               <Route path="catalog/:serviceId" element={<Catalog />} />
-              <Route path="checkout/:groupId" element={<Checkout />} />
+              <Route path="checkout/:groupSlug" element={<Checkout />} />
               <Route path="credentials" element={<MyCredentials />} />
               <Route path="credentials/:serviceId" element={<ServiceCredentials />} />
               <Route path="billing" element={<Billing />} />
+              <Route path="support" element={<UserSupport />} />
+              <Route path="support/new" element={<CreateTicket />} />
+              <Route path="support/:ticketId" element={<TicketDetail />} />
+              <Route path="share" element={<Share />} />
             </Route>
 
             {/* Admin Routes */}
@@ -62,13 +76,17 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="users/:userId" element={<UserDetail />} />
             <Route path="platforms" element={<Platforms />} />
+            <Route path="platforms/new" element={<PlatformForm />} />
+            <Route path="platforms/:platformId/edit" element={<PlatformForm />} />
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="groups" element={<Groups />} />
             <Route path="groups/new" element={<GroupForm />} />
             <Route path="groups/:groupId/edit" element={<GroupForm />} />
             <Route path="credentials" element={<Credentials />} />
             <Route path="support" element={<Support />} />
+            <Route path="support/:ticketId" element={<AdminTicketDetail />} />
             <Route path="announcements" element={<Announcements />} />
+            <Route path="interest" element={<InterestList />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
@@ -76,6 +94,7 @@ function App() {
         </Router>
       </AppDataProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

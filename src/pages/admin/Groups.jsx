@@ -7,7 +7,8 @@ import {
   ChevronDown,
   ChevronUp,
   Pencil,
-  Trash2
+  Trash2,
+  Heart
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import './Groups.css';
@@ -136,6 +137,10 @@ function Groups() {
           <h1>Grupos e Rateios</h1>
           <p className="page-subtitle">{groups.length} grupos cadastrados em {services.length} plataformas</p>
         </div>
+        <Link to="/admin/interest" className="btn btn-outline btn-sm">
+          <Heart size={16} />
+          Lista de Espera
+        </Link>
         <Link to="/admin/groups/new" className="btn btn-primary">
           <Plus size={18} />
           Novo Grupo

@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import './Register.css';
 
 function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
+  const groupSlug = searchParams.get('group');
   const { signUp } = useAuth();
 
   const [name, setName] = useState('');
@@ -12,6 +15,7 @@ function Register() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState(referralCode || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -33,7 +37,7 @@ function Register() {
     setLoading(true);
 
     try {
-      await signUp(name, email, phone, password);
+      await signUp(name, email, phone, password, inviteCode || null);
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Erro ao criar conta. Tente novamente.');
@@ -152,6 +156,23 @@ function Register() {
               placeholder="••••••••"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="inviteCode">Código de Convite <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(opcional)</span></label>
+            <input
+              type="text"
+              id="inviteCode"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+              placeholder="Ex: ABC12345"
+              maxLength={20}
+            />
+            {inviteCode && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--success)', marginTop: '0.25rem', display: 'block' }}>
+                Código de convite aplicado!
+              </span>
+            )}
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

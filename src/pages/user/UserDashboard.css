@@ -13,6 +13,86 @@
   }
 }
 
+/* Announcements Banner */
+.announcements-banner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.announcement-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  animation: bannerSlideIn 0.3s ease-out;
+}
+
+@keyframes bannerSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.announcement-banner.info {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.announcement-banner.warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.announcement-banner.success {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.announcement-banner.urgent {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.announcement-banner-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.announcement-banner-content strong {
+  font-size: 0.95rem;
+  color: var(--secondary);
+}
+
+.announcement-banner-content span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.announcement-dismiss-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.announcement-dismiss-btn:hover {
+  background: var(--border);
+  color: var(--secondary);
+}
+
 .page-header {
   margin-bottom: 2rem;
 }
@@ -158,21 +238,33 @@
   font-weight: 800;
   color: white;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.service-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 1rem;
 }
 
 .service-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .service-info h4 {
   font-size: 1.1rem;
-  margin-bottom: 0.25rem;
+  margin: 0;
   color: var(--secondary);
 }
 
-.service-info p {
-  font-size: 0.875rem;
+.service-profile {
+  font-size: 0.8rem;
   color: var(--text-muted);
+  margin: 0;
 }
 
 .group-creator-tag {

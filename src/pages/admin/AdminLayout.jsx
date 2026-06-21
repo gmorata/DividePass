@@ -38,6 +38,7 @@ function AdminLayout() {
           <Link onClick={closeMenu} to="/admin/platforms" className={`nav-item ${isActive('/admin/platforms')}`}>Plataformas</Link>
           <Link onClick={closeMenu} to="/admin/subscriptions" className={`nav-item ${isActive('/admin/subscriptions')}`}>Assinaturas SaaS</Link>
           <Link onClick={closeMenu} to="/admin/groups" className={`nav-item ${isActive('/admin/groups')}`}>Grupos/Rateios</Link>
+          <Link onClick={closeMenu} to="/admin/interest" className={`nav-item ${isActive('/admin/interest')}`}>Lista de Espera 📋</Link>
           <Link onClick={closeMenu} to="/admin/credentials" className={`nav-item ${isActive('/admin/credentials')}`}>Credenciais/Senhas</Link>
           <Link onClick={closeMenu} to="/admin/support" className={`nav-item ${isActive('/admin/support')}`}>Suporte 🛎️</Link>
           <Link onClick={closeMenu} to="/admin/announcements" className={`nav-item ${isActive('/admin/announcements')}`}>Avisos 📢</Link>

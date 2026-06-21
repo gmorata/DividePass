@@ -210,7 +210,7 @@ function Subscriptions() {
           </select>
         </div>
 
-        <button className="btn btn-outline" onClick={() => window.location.reload()}>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>
           <RefreshCw size={16} />
           Atualizar
         </button>

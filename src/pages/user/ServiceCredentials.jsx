@@ -10,7 +10,8 @@ import {
   AlertTriangle,
   Calendar,
   RotateCcw,
-  Ban
+  Ban,
+  ScrollText
 } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -110,9 +111,13 @@ function ServiceCredentials() {
   }
 
   const { group } = activeService;
-  const credentialsList = Array.isArray(group.credentials)
-    ? group.credentials.filter(c => !c.assigned_to || c.assigned_to === user?.id)
-    : [];
+  const mainCredential = Array.isArray(group.credentials) && group.credentials.length > 0
+    ? group.credentials[0]
+    : null;
+  const hasProfiles = mainCredential?.has_profiles;
+  const myProfile = hasProfiles && group.profiles
+    ? group.profiles.find(p => p.assigned_to === user?.id)
+    : null;
 
   return (
     <div key={serviceId} className="fade-in credentials-page">
@@ -130,13 +135,17 @@ function ServiceCredentials() {
         <div className="credential-header" style={{ backgroundColor: `${service.color}15` }}>
           <div className="credential-service">
             <div className="credential-icon" style={{ backgroundColor: service.color }}>
-              {service.icon}
+              {service.icon_url ? (
+                <img src={service.icon_url} alt={service.name} className="credential-icon-img" />
+              ) : (
+                service.icon
+              )}
             </div>
             <div>
               <h2 style={{ color: service.color }}>{service.full_name}</h2>
-              {credentialsList.length > 0 && (
+              {hasProfiles && (
                 <span className="profile-badge">
-                  {credentialsList.length} {credentialsList.length === 1 ? 'perfil' : 'perfis'}
+                  {myProfile ? `Seu perfil: ${myProfile.profile_name}` : 'Perfil não atribuído'}
                 </span>
               )}
             </div>
@@ -151,6 +160,16 @@ function ServiceCredentials() {
         </div>
 
         <div className="credential-body">
+          {group.rules && (
+            <div className="credential-rules-highlight">
+              <div className="rules-highlight-header">
+                <ScrollText size={20} />
+                <strong>Regras do Grupo</strong>
+              </div>
+              <p>{group.rules}</p>
+            </div>
+          )}
+
           <div className="credential-info-row">
             <Shield size={20} />
             <p>
@@ -192,7 +211,11 @@ function ServiceCredentials() {
           <div className="credentials-modal" onClick={e => e.stopPropagation()}>
             <div className="credentials-modal-header">
               <div className="modal-icon" style={{ backgroundColor: service.color }}>
-                {service.icon}
+                {service.icon_url ? (
+                  <img src={service.icon_url} alt={service.name} className="credential-icon-img" />
+                ) : (
+                  service.icon
+                )}
               </div>
               <div>
                 <h2>{service.full_name}</h2>
@@ -204,27 +227,51 @@ function ServiceCredentials() {
             </div>
 
             <div className="credentials-modal-body">
-              {credentialsList.length === 0 ? (
+              {!mainCredential ? (
                 <div className="no-credentials">
                   <AlertTriangle size={24} />
                   <p>Nenhuma credencial cadastrada para este grupo ainda.</p>
                 </div>
-              ) : credentialsList.length === 1 ? (
-                <div className="single-credential">
-                  {renderCredentialFields(credentialsList[0], 0, showPasswords, togglePassword, copiedField, handleCopy)}
-                </div>
               ) : (
-                <div className="multi-credentials">
-                  {credentialsList.map((cred, index) => (
-                    <div key={index} className="cred-profile-card">
-                      <div className="cred-profile-header">
-                        <div className="cred-profile-dot" style={{ backgroundColor: service.color }} />
-                        <h3>{cred.profile_assignment || `Perfil ${index + 1}`}</h3>
-                      </div>
-                      {renderCredentialFields(cred, index, showPasswords, togglePassword, copiedField, handleCopy)}
+                <>
+                  <div className="cred-section">
+                    <h3>Login Compartilhado</h3>
+                    {renderCredentialFields(mainCredential, 'main', showPasswords, togglePassword, copiedField, handleCopy)}
+                  </div>
+
+                  {hasProfiles && (
+                    <div className="cred-section" style={{ marginTop: '1.25rem' }}>
+                      <h3>Seu Perfil Individual</h3>
+                      {myProfile ? (
+                        <div className="cred-profile-card">
+                          <div className="cred-profile-header">
+                            <div className="cred-profile-dot" style={{ backgroundColor: service.color }} />
+                            <h4>{myProfile.profile_name}</h4>
+                          </div>
+                          <div className="cred-field">
+                            <label>Senha do Perfil</label>
+                            <div className="cred-field-box">
+                              <code>{showPasswords['profile'] ? myProfile.profile_password : '•'.repeat(8)}</code>
+                              <div className="cred-actions">
+                                <button className="cred-action-btn" onClick={() => togglePassword('profile')} title={showPasswords['profile'] ? 'Ocultar' : 'Mostrar'}>
+                                  {showPasswords['profile'] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                                <button className="cred-action-btn" onClick={() => handleCopy(myProfile.profile_password, 'profile')} title="Copiar">
+                                  {copiedField === 'profile' ? <Check size={16} /> : <Copy size={16} />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="no-credentials">
+                          <AlertTriangle size={20} />
+                          <p>Nenhum perfil foi atribuído a você ainda.</p>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
 
               <div className="credentials-modal-footer">
@@ -238,8 +285,8 @@ function ServiceCredentials() {
   );
 }
 
-function renderCredentialFields(cred, index, showPasswords, togglePassword, copiedField, handleCopy) {
-  const isVisible = showPasswords[index];
+function renderCredentialFields(cred, key, showPasswords, togglePassword, copiedField, handleCopy) {
+  const isVisible = showPasswords[key];
   return (
     <>
       <div className="cred-field">
@@ -247,8 +294,8 @@ function renderCredentialFields(cred, index, showPasswords, togglePassword, copi
         <div className="cred-field-box">
           <code>{cred.login_email || '—'}</code>
           {cred.login_email && (
-            <button className="cred-action-btn" onClick={() => handleCopy(cred.login_email, `email-${index}`)} title="Copiar">
-              {copiedField === `email-${index}` ? <Check size={16} /> : <Copy size={16} />}
+            <button className="cred-action-btn" onClick={() => handleCopy(cred.login_email, `email-${key}`)} title="Copiar">
+              {copiedField === `email-${key}` ? <Check size={16} /> : <Copy size={16} />}
             </button>
           )}
         </div>
@@ -259,11 +306,11 @@ function renderCredentialFields(cred, index, showPasswords, togglePassword, copi
           <code>{isVisible ? cred.login_password : '•'.repeat(Math.max(8, cred.login_password?.length || 8))}</code>
           {cred.login_password && (
             <div className="cred-actions">
-              <button className="cred-action-btn" onClick={() => togglePassword(index)} title={isVisible ? 'Ocultar' : 'Mostrar'}>
+              <button className="cred-action-btn" onClick={() => togglePassword(key)} title={isVisible ? 'Ocultar' : 'Mostrar'}>
                 {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button className="cred-action-btn" onClick={() => handleCopy(cred.login_password, `pass-${index}`)} title="Copiar">
-                {copiedField === `pass-${index}` ? <Check size={16} /> : <Copy size={16} />}
+              <button className="cred-action-btn" onClick={() => handleCopy(cred.login_password, `pass-${key}`)} title="Copiar">
+                {copiedField === `pass-${key}` ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </div>
           )}

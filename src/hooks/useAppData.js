@@ -21,6 +21,7 @@ export function useAppData() {
   const [streamingServices, setStreamingServices] = useState([]);
   const [groups, setGroups] = useState([]);
   const [activeSubscriptions, setActiveSubscriptions] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -50,7 +51,7 @@ export function useAppData() {
           service:service_id (*),
           members:group_members (*),
           credential:group_credentials (*)
-        `).eq('status', 'open'),
+        `).in('status', ['open', 'forming']),
         supabase.from('user_subscriptions').select(`
           *,
           group:group_id (*),
@@ -85,19 +86,21 @@ export function useAppData() {
       if (!cancelled) setLoading(true);
 
       try {
-        const [servicesRes, groupsRes, subscriptionsRes] = await Promise.all([
+        const [servicesRes, groupsRes, subscriptionsRes, announcementsRes] = await Promise.all([
           supabase.from('streaming_services').select('*').eq('status', 'active').order('name'),
           supabase.from('groups').select(`
             *,
             service:service_id (*),
             members:group_members (*),
-            credential:group_credentials (*)
-          `).eq('status', 'open'),
+            credential:group_credentials (*),
+            owner:owner_id (id, name, email)
+          `).in('status', ['open', 'forming']),
           supabase.from('user_subscriptions').select(`
             *,
-            group:group_id (*, credential:group_credentials (*), owner:owner_id (id, name)),
+            group:group_id (*, credential:group_credentials (*), profiles:group_profiles(*), owner:owner_id (id, name)),
             service:service_id (*)
-          `).eq('user_id', user.id).eq('status', 'active')
+          `).eq('user_id', user.id).eq('status', 'active'),
+          supabase.from('announcements').select('*').eq('is_active', true).or(`target_user_id.is.null,target_user_id.eq.${user.id}`).order('created_at', { ascending: false })
         ]);
 
         if (servicesRes.error) throw servicesRes.error;
@@ -108,6 +111,7 @@ export function useAppData() {
           setStreamingServices(servicesRes.data || []);
           setGroups(groupsRes.data || []);
           setActiveSubscriptions(subscriptionsRes.data || []);
+          setAnnouncements(announcementsRes.data || []);
           setError(null);
         }
       } catch (err) {
@@ -144,6 +148,7 @@ export function useAppData() {
       group: {
         ...sub.group,
         credentials: sub.group?.credential || [],
+        profiles: sub.group?.profiles || [],
         owner: sub.group?.owner || null
       }
     }));
@@ -170,6 +175,20 @@ export function useAppData() {
 
   const getGroupDetails = useCallback((groupId) => {
     const group = groups.find(g => g.id === groupId);
+    if (!group) return null;
+    const service = getServiceById(group.service_id);
+    return {
+      group: {
+        ...group,
+        credentials: group.credential || {}
+      },
+      service,
+      spots: getAvailableSpots(group, service)
+    };
+  }, [groups, getServiceById]);
+
+  const getGroupBySlug = useCallback((slug) => {
+    const group = groups.find(g => g.slug === slug || g.id === slug);
     if (!group) return null;
     const service = getServiceById(group.service_id);
     return {
@@ -253,10 +272,34 @@ export function useAppData() {
     }
   }, [user, activeSubscriptions, fetchData]);
 
+  const getUnviewedAnnouncements = useCallback(() => {
+    if (!user) return [];
+    try {
+      const dismissed = JSON.parse(localStorage.getItem('dismissed_announcements') || '[]');
+      return announcements.filter(a => !dismissed.includes(a.id));
+    } catch {
+      return announcements;
+    }
+  }, [announcements, user]);
+
+  const dismissAnnouncement = useCallback(async (announcementId) => {
+    if (!user) return;
+    const dismissed = JSON.parse(localStorage.getItem('dismissed_announcements') || '[]');
+    if (!dismissed.includes(announcementId)) {
+      dismissed.push(announcementId);
+      localStorage.setItem('dismissed_announcements', JSON.stringify(dismissed));
+    }
+    await supabase.from('user_announcement_views').upsert(
+      { announcement_id: announcementId, user_id: user.id },
+      { onConflict: 'announcement_id,user_id' }
+    );
+  }, [user]);
+
   return {
     streamingServices,
     groups,
     activeSubscriptions,
+    announcements,
     currentUser,
     loading,
     error,
@@ -264,9 +307,12 @@ export function useAppData() {
     getAvailableServices,
     getServiceGroups,
     getGroupDetails,
+    getGroupBySlug,
     isSubscribedToService,
     getUserSubscriptionForService,
     joinGroup,
+    getUnviewedAnnouncements,
+    dismissAnnouncement,
     refresh: fetchData
   };
 }

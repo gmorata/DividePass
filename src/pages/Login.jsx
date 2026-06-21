@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import './Login.css';
 
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
   const { signIn, profile } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -92,7 +94,7 @@ function Login() {
         </form>
 
         <div className="login-footer">
-          <p>Não tem uma conta? <Link to="/register">Cadastre-se</Link></p>
+          <p>Não tem uma conta? <Link to={`/register${referralCode ? `?ref=${referralCode}` : ''}`}>Cadastre-se</Link></p>
         </div>
       </div>
     </div>

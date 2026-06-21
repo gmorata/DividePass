@@ -287,6 +287,85 @@
   border-radius: 999px;
 }
 
+/* Entrance Fee Highlight */
+.entrance-fee-highlight {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+  border: 2px solid rgba(239, 68, 68, 0.25);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.entrance-fee-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.entrance-fee-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #EF4444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.entrance-fee-header strong {
+  color: #DC2626;
+  font-size: 0.9rem;
+}
+
+.entrance-fee-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.entrance-fee-desc strong {
+  color: #DC2626;
+}
+
+.entrance-fee-amount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #DC2626;
+  font-family: var(--font-title);
+}
+
+.cycle-months-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Renewal Note */
+.renewal-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+  margin-top: 0.25rem;
+}
+
+.renewal-note svg {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.renewal-note strong {
+  color: var(--success);
+}
+
 @media (max-width: 768px) {
   .cycle-options {
     grid-template-columns: repeat(2, 1fr);
@@ -478,6 +557,23 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.auth-buttons-checkout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.auth-buttons-checkout .btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-main);
+}
+
+.auth-buttons-checkout .btn-outline:hover {
+  background: var(--background);
 }
 
 @media (max-width: 900px) {

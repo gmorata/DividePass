@@ -170,7 +170,7 @@ function Billing() {
                       </td>
                       <td>
                         <button
-                          className="btn btn-outline pay-btn"
+                          className="btn btn-primary btn-sm pay-btn"
                           onClick={() => setSelectedInvoice(inv)}
                         >
                           <Receipt size={16} />

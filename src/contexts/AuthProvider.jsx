@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const signUp = useCallback(async (name, email, phone, password) => {
+  const signUp = useCallback(async (name, email, phone, password, referralCode = null) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -73,6 +73,51 @@ export function AuthProvider({ children }) {
     });
 
     if (error) throw error;
+
+    if (data?.user) {
+      const code = data.user.id.substring(0, 8).toUpperCase();
+      await supabase.from('user_referral_codes').insert({
+        user_id: data.user.id,
+        referral_code: code
+      });
+
+      if (referralCode) {
+        const { data: referrerData } = await supabase
+          .from('user_referral_codes')
+          .select('user_id')
+          .eq('referral_code', referralCode)
+          .maybeSingle();
+
+        if (referrerData) {
+          await supabase.from('referrals').insert({
+            referrer_id: referrerData.user_id,
+            invitee_id: data.user.id,
+            referral_code: referralCode,
+            status: 'pending',
+            points: 5
+          });
+
+          const inviteeCode = data.user.id.substring(0, 8).toUpperCase();
+          const { data: inviteeCodeData } = await supabase
+            .from('user_referral_codes')
+            .select('id')
+            .eq('user_id', data.user.id)
+            .maybeSingle();
+
+          if (inviteeCodeData) {
+            await supabase.from('referrals').insert({
+              referrer_id: data.user.id,
+              invitee_id: data.user.id,
+              referral_code: inviteeCode,
+              status: 'completed',
+              points: 5,
+              completed_at: new Date().toISOString()
+            });
+          }
+        }
+      }
+    }
+
     return data;
   }, []);
 
