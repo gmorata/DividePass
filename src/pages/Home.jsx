@@ -95,65 +95,6 @@ const faqs = [
   }
 ];
 
-const stats = [
-  { value: 1247, suffix: '+', label: 'Usuários ativos', increment: 1 },
-  { value: 18, suffix: '+', label: 'Serviços disponíveis', increment: 0 },
-  { value: 48700, prefix: 'R$ ', suffix: '+', label: 'Economizados pelos usuários', increment: 8 },
-  { value: 98, suffix: '%', label: 'Satisfação dos clientes', increment: 0 }
-];
-
-function formatNumber(num) {
-  return num.toLocaleString('pt-BR');
-}
-
-function AnimatedStatCard({ stat, index }) {
-  const [displayValue, setDisplayValue] = useState(0);
-  const [hasAnimated, setHasAnimated] = useState(false);
-
-  useEffect(() => {
-    const duration = 2000;
-    const steps = 60;
-    const stepTime = duration / steps;
-    const increment = stat.value / steps;
-    let current = 0;
-    let step = 0;
-
-    const timer = setInterval(() => {
-      step += 1;
-      current = Math.min(Math.round(increment * step), stat.value);
-      setDisplayValue(current);
-
-      if (step >= steps) {
-        clearInterval(timer);
-        setHasAnimated(true);
-      }
-    }, stepTime);
-
-    return () => clearInterval(timer);
-  }, [stat.value]);
-
-  useEffect(() => {
-    if (!hasAnimated || stat.increment <= 0) return;
-
-    const interval = setInterval(() => {
-      setDisplayValue((prev) => prev + stat.increment);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [hasAnimated, stat.increment]);
-
-  return (
-    <div key={index} className="stat-card">
-      <div className="stat-value">
-        {stat.prefix || ''}
-        {formatNumber(displayValue)}
-        {stat.suffix || ''}
-      </div>
-      <div className="stat-label">{stat.label}</div>
-    </div>
-  );
-}
-
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -249,25 +190,6 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="hero-trust">
-            <div className="trust-avatars">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="trust-avatar" />
-              ))}
-            </div>
-            <div className="trust-text">
-              <strong>+50.000 pessoas</strong>
-              <span>já economizam com a gente</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="stats-section">
-          <div className="stats-grid">
-            {stats.map((stat, index) => (
-              <AnimatedStatCard key={index} stat={stat} index={index} />
-            ))}
-          </div>
         </section>
 
         <section id="servicos" className="services-section">
