@@ -113,6 +113,12 @@
   font-weight: 700;
   font-size: 1.2rem;
   box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  object-fit: cover;
+  background: none;
 }
 
 .user-details {

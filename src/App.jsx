@@ -22,6 +22,7 @@ import UserSupport from './pages/user/Support';
 import CreateTicket from './pages/user/CreateTicket';
 import TicketDetail from './pages/user/TicketDetail';
 import Share from './pages/user/Share';
+import UserProfile from './pages/user/UserProfile';
 
 // Admin Imports
 import AdminLayout from './pages/admin/AdminLayout';
@@ -68,6 +69,7 @@ function App() {
               <Route path="support/new" element={<CreateTicket />} />
               <Route path="support/:ticketId" element={<TicketDetail />} />
               <Route path="share" element={<Share />} />
+              <Route path="profile" element={<UserProfile />} />
             </Route>
 
             {/* Admin Routes */}

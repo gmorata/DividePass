@@ -10,9 +10,11 @@ function UserLayout() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { currentUser, getActiveServices } = useAppDataContext();
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
 
   const activeCount = getActiveServices().length;
+  const displayName = profile?.nickname || currentUser?.name || 'Usuário';
+  const avatarUrl = profile?.avatar_url || null;
 
   const isActive = (path) => {
     if (path === '/dashboard') {
@@ -49,10 +51,14 @@ function UserLayout() {
           <Link onClick={closeMenu} to="/dashboard/share" className={`nav-item ${isActive('/dashboard/share')}`}>Convidar Amigos</Link>
         </nav>
           <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="avatar">{currentUser?.name?.[0] || 'U'}</div>
+          <div className="user-info" onClick={() => { closeMenu(); navigate('/dashboard/profile'); }} style={{ cursor: 'pointer' }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="avatar avatar-img" />
+            ) : (
+              <div className="avatar">{currentUser?.name?.[0] || 'U'}</div>
+            )}
             <div className="user-details">
-              <strong>{currentUser?.name || 'Usuário'}</strong>
+              <strong>{displayName}</strong>
               <span>{activeCount} {activeCount === 1 ? 'assinatura ativa' : 'assinaturas ativas'}</span>
             </div>
           </div>
