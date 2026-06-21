@@ -1,7 +1,7 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #0F172A;
+  background-color: var(--background);
   position: relative;
 }
 
@@ -12,13 +12,13 @@
   top: 0.75rem;
   left: 1rem;
   z-index: 50;
-  background: #0F172A;
-  color: white;
+  background: var(--surface);
+  color: var(--text-main);
   width: 40px;
   height: 40px;
   border-radius: 0.5rem;
   font-size: 1.25rem;
-  border: none;
+  border: 1px solid var(--border);
   cursor: pointer;
 }
 
@@ -33,13 +33,14 @@
 
 .admin-sidebar {
   width: 260px;
-  background-color: #0F172A;
-  color: white;
+  background-color: var(--surface);
+  color: var(--text-main);
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
   z-index: 40;
   transition: transform 0.3s ease;
+  border-right: 1px solid var(--border);
 }
 
 .admin-logo {
@@ -47,7 +48,7 @@
   font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: 3rem;
-  color: white;
+  color: var(--text-main);
 }
 
 .admin-logo span {
@@ -64,14 +65,14 @@
 .admin-nav .nav-item {
   padding: 0.875rem 1rem;
   border-radius: 0.5rem;
-  color: #94A3B8;
+  color: var(--text-muted);
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .admin-nav .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: white;
+  background-color: var(--primary-soft);
+  color: var(--text-main);
 }
 
 .admin-nav .nav-item.active {
@@ -81,7 +82,7 @@
 
 .admin-footer {
   margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border);
   padding-top: 1rem;
 }
 
@@ -99,7 +100,7 @@
 
 .admin-topbar {
   height: 70px;
-  background-color: rgba(255,255,255,0.04);
+  background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -113,6 +114,8 @@
   border: 1px solid var(--border);
   width: 300px;
   outline: none;
+  background: var(--surface-soft);
+  color: var(--text-main);
 }
 
 .search-bar input:focus {
@@ -124,6 +127,7 @@
   align-items: center;
   gap: 1rem;
   font-weight: 600;
+  color: var(--text-main);
 }
 
 .admin-avatar {
@@ -150,15 +154,15 @@
 
 .admin-header h1 {
   font-size: 1.75rem;
-  color: var(--secondary);
+  color: var(--text-main);
 }
 
 .admin-card {
-  background: rgba(255,255,255,0.04);
+  background: var(--surface);
   border-radius: 0.75rem;
   border: 1px solid var(--border);
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-xs);
 }
 
 /* --- Mobile Responsiveness Admin --- */
@@ -186,7 +190,7 @@
   }
 
   .admin-topbar {
-    padding-left: 3.5rem; /* espaco pro botao menu */
+    padding-left: 3.5rem;
     padding-right: 0.5rem;
     height: 55px;
   }

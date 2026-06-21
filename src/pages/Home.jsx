@@ -15,6 +15,7 @@ import {
   HelpCircle,
   ArrowRight
 } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 import './Home.css';
 
 const services = [
@@ -144,6 +145,7 @@ export default function Home() {
           </nav>
 
           <div className="navbar-actions">
+            <ThemeToggle />
             <Link to="/login" className="btn btn-outline navbar-login-btn">
               Entrar
             </Link>

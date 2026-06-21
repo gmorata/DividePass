@@ -16,6 +16,20 @@
   --home-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
 }
 
+[data-theme="light"] .home-container,
+[data-theme="light"] .home-container {
+  --home-bg: #F8FAFC;
+  --home-surface: rgba(0, 0, 0, 0.02);
+  --home-surface-hover: rgba(0, 0, 0, 0.04);
+  --home-border: rgba(0, 0, 0, 0.08);
+  --home-border-strong: rgba(0, 0, 0, 0.15);
+  --home-text: #0F172A;
+  --home-text-muted: #64748B;
+  --home-secondary: #FFFFFF;
+  --home-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --home-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+}
+
 .home-container {
   min-height: 100vh;
   background-color: var(--home-bg);
@@ -32,7 +46,7 @@
   transform: translateX(-50%);
   width: 120vw;
   height: 80vh;
-  background: radial-gradient(ellipse at center, rgba(79, 70, 229, 0.18) 0%, rgba(79, 70, 229, 0.05) 30%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(79, 70, 229, 0.12) 0%, rgba(79, 70, 229, 0.03) 30%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -389,7 +403,7 @@
 .section-tag {
   display: inline-block;
   padding: 0.35rem 1rem;
-  background: rgba(79, 70, 229, 0.12);
+  background: var(--primary-soft);
   border: 1px solid rgba(79, 70, 229, 0.2);
   border-radius: 9999px;
   color: var(--home-primary);
@@ -456,7 +470,7 @@
   height: 48px;
   min-width: 48px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--home-surface-hover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -537,7 +551,7 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: rgba(79, 70, 229, 0.12);
+  background: var(--primary-soft);
   color: var(--home-primary);
   display: flex;
   align-items: center;
@@ -552,7 +566,7 @@
   font-family: var(--font-title), 'Poppins', sans-serif;
   font-size: 2.5rem;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.05);
+  color: var(--home-border);
   line-height: 1;
 }
 
@@ -795,7 +809,7 @@
 
 .cta-card {
   position: relative;
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(14, 165, 233, 0.08));
+  background: linear-gradient(135deg, var(--home-surface), var(--home-surface-hover));
   border: 1px solid var(--home-border);
   border-radius: 2rem;
   padding: 4rem 3rem;
@@ -870,7 +884,7 @@
 /* Footer */
 .footer {
   border-top: 1px solid var(--home-border);
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--home-surface);
   padding: 4rem 1.5rem 2rem;
 }
 

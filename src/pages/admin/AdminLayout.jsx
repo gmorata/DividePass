@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import ThemeToggle from '../../components/ThemeToggle';
 import './AdminLayout.css';
 
 function AdminLayout() {
@@ -44,6 +45,7 @@ function AdminLayout() {
           <Link onClick={closeMenu} to="/admin/announcements" className={`nav-item ${isActive('/admin/announcements')}`}>Avisos 📢</Link>
         </nav>
         <div className="admin-footer">
+          <ThemeToggle className="sidebar-theme-toggle" />
           <button onClick={handleLogout} className="nav-item logout">Sair do Painel</button>
         </div>
       </aside>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
+import ThemeToggle from '../../components/ThemeToggle';
 import './UserLayout.css';
 
 function UserLayout() {
@@ -54,6 +55,9 @@ function UserLayout() {
               <strong>{currentUser?.name || 'Usuário'}</strong>
               <span>{activeCount} {activeCount === 1 ? 'assinatura ativa' : 'assinaturas ativas'}</span>
             </div>
+          </div>
+          <div className="sidebar-theme-row">
+            <ThemeToggle className="sidebar-theme-toggle" />
           </div>
           <button onClick={handleLogout} className="nav-item logout" style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none' }}>
             Sair
