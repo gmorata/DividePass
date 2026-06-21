@@ -250,8 +250,8 @@
 }
 
 .message-bubble.admin {
-  background: rgba(255, 107, 0, 0.06);
-  border: 1px solid rgba(255, 107, 0, 0.15);
+  background: rgba(79, 70, 229, 0.06);
+  border: 1px solid rgba(79, 70, 229, 0.15);
 }
 
 .message-header {
@@ -325,7 +325,7 @@
 .reply-image-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(255, 107, 0, 0.05);
+  background: rgba(79, 70, 229, 0.05);
 }
 
 .image-preview-box {
@@ -384,7 +384,7 @@
 .image-upload-area:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(255, 107, 0, 0.03);
+  background: rgba(79, 70, 229, 0.03);
 }
 
 .image-upload-area span {

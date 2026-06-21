@@ -231,7 +231,7 @@
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--success);
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   padding: 0.2rem 0.6rem;
   border-radius: 1rem;
   white-space: nowrap;
@@ -387,7 +387,7 @@
 .add-profile-inline-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(255, 107, 0, 0.03);
+  background: rgba(79, 70, 229, 0.03);
 }
 
 /* Toast */
@@ -399,8 +399,8 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.85rem 1.2rem;
-  background: #065f46;
-  color: #d1fae5;
+  background: #10B981;
+  color: rgba(16,185,129,0.12);
   border-radius: 0.75rem;
   font-size: 0.9rem;
   font-weight: 500;
@@ -412,7 +412,7 @@
 .toast-success button {
   background: none;
   border: none;
-  color: #d1fae5;
+  color: rgba(16,185,129,0.12);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -464,7 +464,7 @@
 .cycle-check.active {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(255, 107, 0, 0.05);
+  background: rgba(79, 70, 229, 0.05);
   font-weight: 600;
 }
 

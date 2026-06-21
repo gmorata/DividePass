@@ -27,7 +27,7 @@
 .payment-return-logo .logo-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #FF6B00, #FF8C42);
+  background: linear-gradient(135deg, #4F46E5, #818CF8);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -50,7 +50,7 @@
 }
 
 .payment-return-card.success .return-icon {
-  color: #22C55E;
+  color: #10B981;
 }
 
 .payment-return-card.pending .return-icon {

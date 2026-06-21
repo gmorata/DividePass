@@ -16,8 +16,8 @@ export function ProtectedRoute({ children, requireAdmin = false }) {
         <div className="spinner" style={{
           width: 40,
           height: 40,
-          border: '4px solid rgba(255, 107, 0, 0.2)',
-          borderTopColor: '#FF6B00',
+border: '4px solid rgba(79, 70, 229, 0.2)',
+           borderTopColor: '#4F46E5',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }} />
@@ -50,8 +50,8 @@ export function PublicRoute({ children }) {
         <div className="spinner" style={{
           width: 40,
           height: 40,
-          border: '4px solid rgba(255, 107, 0, 0.2)',
-          borderTopColor: '#FF6B00',
+border: '4px solid rgba(79, 70, 229, 0.2)',
+           borderTopColor: '#4F46E5',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }} />

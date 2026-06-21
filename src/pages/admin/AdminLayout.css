@@ -1,7 +1,7 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #F1F5F9;
+  background-color: #0F172A;
   position: relative;
 }
 
@@ -99,7 +99,7 @@
 
 .admin-topbar {
   height: 70px;
-  background-color: white;
+  background-color: rgba(255,255,255,0.04);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -154,7 +154,7 @@
 }
 
 .admin-card {
-  background: white;
+  background: rgba(255,255,255,0.04);
   border-radius: 0.75rem;
   border: 1px solid var(--border);
   padding: 1.5rem;

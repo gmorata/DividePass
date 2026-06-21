@@ -1,36 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --primary: #FF6B00;
-  --primary-600: #EA580C;
-  --primary-700: #C2410C;
-  --primary-soft: rgba(255, 107, 0, 0.1);
-  --secondary: #111827;
-  --ink: #0B1220;
-  --success: #22C55E;
+  --primary: #4F46E5;
+  --primary-600: #4338CA;
+  --primary-700: #3730A3;
+  --primary-soft: rgba(79, 70, 229, 0.12);
+  --primary-light: #818CF8;
+  --action: #EA580C;
+  --action-light: #FB923C;
+  --action-bg: #FEF9C3;
+  --tech: #0EA5E9;
+  --tech-bg: rgba(14, 165, 233, 0.12);
+  --economy: #10B981;
+  --economy-bg: rgba(16, 185, 129, 0.12);
+  --secondary: #FFFFFF;
+  --ink: #0F172A;
+  --success: #10B981;
   --warning: #F59E0B;
   --error: #EF4444;
-  --info: #2563EB;
-  --background: #F5F7FB;
-  --surface: #FFFFFF;
-  --surface-raised: rgba(255, 255, 255, 0.84);
-  --surface-soft: #F8FAFC;
-  --text-main: #101828;
-  --text-muted: #667085;
-  --text-soft: #98A2B3;
-  --border: #E4E7EC;
-  --border-strong: #D0D5DD;
-  --ring: rgba(255, 107, 0, 0.22);
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-sm: 0 8px 24px rgba(16, 24, 40, 0.08);
-  --shadow-md: 0 18px 45px rgba(16, 24, 40, 0.1);
-  --shadow-lg: 0 28px 70px rgba(16, 24, 40, 0.14);
+  --info: #0EA5E9;
+  --background: #0F172A;
+  --surface: #1E293B;
+  --surface-raised: rgba(30, 41, 59, 0.84);
+  --surface-soft: #1E293B;
+  --text-main: #FFFFFF;
+  --text-muted: #94A3B8;
+  --text-soft: #64748B;
+  --border: #334155;
+  --border-strong: #475569;
+  --ring: rgba(79, 70, 229, 0.3);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 18px 45px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.45);
   --radius-xs: 8px;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
 
-  --font-title: 'Poppins', sans-serif;
+  --font-title: 'Inter', sans-serif;
   --font-text: 'Inter', sans-serif;
 }
 
@@ -47,10 +55,7 @@ html, body {
 
 body {
   font-family: var(--font-text);
-  background:
-    radial-gradient(circle at 12% -10%, rgba(255, 107, 0, 0.12), transparent 34rem),
-    radial-gradient(circle at 88% 0%, rgba(37, 99, 235, 0.08), transparent 30rem),
-    linear-gradient(180deg, #FAFBFF 0%, var(--background) 38%, #F7F8FC 100%);
+  background: var(--background);
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -60,10 +65,10 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-title);
-  color: var(--secondary);
-  font-weight: 700;
+  color: var(--text-main);
+  font-weight: 800;
   line-height: 1.2;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 a {
@@ -73,7 +78,7 @@ a {
 
 button {
   cursor: pointer;
-  font-family: var(--font-title);
+  font-family: var(--font-text);
   border: none;
   background: none;
 }
@@ -97,27 +102,27 @@ textarea {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #FF8A3D);
+  background: linear-gradient(90deg, var(--primary), var(--action));
   color: white;
-  box-shadow: 0 10px 22px rgba(255, 107, 0, 0.22);
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.3);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-600), #FF7A24);
+  background: linear-gradient(90deg, var(--primary-600), var(--action-light));
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(255, 107, 0, 0.28);
+  box-shadow: 0 14px 28px rgba(79, 70, 229, 0.4);
 }
 
 .btn-outline {
-  border: 1px solid var(--border-strong);
-  color: var(--secondary);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
   box-shadow: var(--shadow-xs);
 }
 
 .btn-outline:hover {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
   color: white;
   transform: translateY(-1px);
 }
@@ -131,7 +136,21 @@ textarea {
 }
 
 ::selection {
-  background: rgba(255, 107, 0, 0.22);
+  background: rgba(79, 70, 229, 0.3);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {

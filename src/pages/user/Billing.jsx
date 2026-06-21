@@ -115,7 +115,7 @@ function Billing() {
                 <div key={sub.id} className="billing-sub-card">
                   <div
                     className="billing-sub-icon"
-                    style={{ backgroundColor: sub.service?.color || '#FF6B00' }}
+                    style={{ backgroundColor: sub.service?.color || '#4F46E5' }}
                   >
                     {sub.service?.icon || 'S'}
                   </div>

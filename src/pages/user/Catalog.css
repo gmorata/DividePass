@@ -43,8 +43,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   color: var(--success);
   padding: 1rem 1.25rem;
   border-radius: 1rem;
@@ -88,7 +88,7 @@
 }
 
 .catalog-card.subscribed {
-  border-color: rgba(34, 197, 94, 0.25);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
 .catalog-header {
@@ -113,7 +113,7 @@
 .catalog-icon-text {
   width: 48px;
   height: 48px;
-  background: white;
+  background: rgba(255,255,255,0.05);
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
@@ -164,13 +164,13 @@
 }
 
 .catalog-btn-subscribed {
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--success);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .catalog-btn-subscribed:hover {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 /* Groups Grid (detail page) */
@@ -253,7 +253,7 @@
 }
 
 .filter-btn.active {
-  background: rgba(255, 107, 0, 0.08);
+  background: rgba(79, 70, 229, 0.08);
   border-color: var(--primary);
   color: var(--primary);
 }
@@ -321,7 +321,7 @@
 
 .verified-badge {
   display: inline-flex;
-  color: #3B82F6;
+  color: #0EA5E9;
   vertical-align: middle;
 }
 
@@ -334,7 +334,7 @@
 }
 
 .tag-open {
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--success);
 }
 
@@ -344,8 +344,8 @@
 }
 
 .tag-active {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3B82F6;
+  background: rgba(14, 165, 233, 0.1);
+  color: #0EA5E9;
 }
 
 .tag-forming {
@@ -431,7 +431,7 @@
 }
 
 .group-tag-item {
-  background: rgba(255, 107, 0, 0.1);
+  background: rgba(79, 70, 229, 0.1);
   color: var(--primary);
   font-size: 0.7rem;
   font-weight: 700;
@@ -443,8 +443,8 @@
 .group-rules {
   display: flex;
   gap: 0.5rem;
-  background: rgba(255, 171, 0, 0.05);
-  border: 1px solid rgba(255, 171, 0, 0.15);
+  background: rgba(251, 146, 60, 0.05);
+  border: 1px solid rgba(251, 146, 60, 0.15);
   border-radius: 0.75rem;
   padding: 0.75rem;
   color: var(--text-muted);
@@ -452,7 +452,7 @@
 }
 
 .group-rules svg {
-  color: #FFAB00;
+  color: #FB923C;
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
@@ -550,7 +550,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 1.1rem;
-  background: linear-gradient(135deg, #FF6B00, #FF8C33);
+  background: linear-gradient(135deg, #4F46E5, #818CF8);
   color: white;
   border: none;
   border-radius: 0.75rem;
@@ -559,12 +559,12 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(255, 107, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
 }
 
 .btn-interest-header:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
 }
 
 /* Modal */

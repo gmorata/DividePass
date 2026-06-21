@@ -78,7 +78,7 @@
 .success-icon {
   width: 80px;
   height: 80px;
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--success);
   border-radius: 50%;
   display: flex;
@@ -190,8 +190,8 @@
 .checkout-rules {
   display: flex;
   gap: 0.75rem;
-  background: rgba(255, 171, 0, 0.05);
-  border: 1px solid rgba(255, 171, 0, 0.15);
+  background: rgba(251, 146, 60, 0.05);
+  border: 1px solid rgba(251, 146, 60, 0.15);
   border-radius: 0.75rem;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -199,7 +199,7 @@
 }
 
 .checkout-rules svg {
-  color: #FFAB00;
+  color: #FB923C;
   flex-shrink: 0;
 }
 
@@ -255,7 +255,7 @@
 
 .cycle-option.selected {
   border-color: var(--primary);
-  background: rgba(255, 107, 0, 0.08);
+  background: rgba(79, 70, 229, 0.08);
 }
 
 .cycle-label {
@@ -319,7 +319,7 @@
 }
 
 .entrance-fee-header strong {
-  color: #DC2626;
+  color: #EF4444;
   font-size: 0.9rem;
 }
 
@@ -331,13 +331,13 @@
 }
 
 .entrance-fee-desc strong {
-  color: #DC2626;
+  color: #EF4444;
 }
 
 .entrance-fee-amount {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #DC2626;
+  color: #EF4444;
   font-family: var(--font-title);
 }
 
@@ -399,7 +399,7 @@
 
 .payment-method.active {
   border-color: var(--primary);
-  background: rgba(255, 107, 0, 0.05);
+  background: rgba(79, 70, 229, 0.05);
 }
 
 .payment-method svg {
@@ -507,7 +507,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(255, 107, 0, 0.1);
+  background: rgba(79, 70, 229, 0.1);
   color: var(--primary);
   display: flex;
   align-items: center;
