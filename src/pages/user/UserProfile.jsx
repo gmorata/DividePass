@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Save, ArrowLeft, User } from 'lucide-react';
+import { Camera, Save, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import './UserProfile.css';
@@ -68,20 +68,21 @@ export default function UserProfile() {
     const ext = avatarFile.name.split('.').pop();
     const path = `${user.id}/avatar.${ext}`;
 
-    const { error } = await supabase.storage
+    const { data, error } = await supabase.storage
       .from('profile-photos')
       .upload(path, avatarFile, { upsert: true });
 
     if (error) {
       console.error('Upload error:', error);
+      setMessage({ type: 'error', text: 'Erro no upload: ' + error.message });
       return null;
     }
 
-    const { data } = supabase.storage
+    const { data: urlData } = supabase.storage
       .from('profile-photos')
       .getPublicUrl(path);
 
-    return data?.publicUrl || null;
+    return urlData?.publicUrl || null;
   };
 
   const handleSubmit = async (e) => {
@@ -91,28 +92,36 @@ export default function UserProfile() {
 
     try {
       let newAvatarUrl = avatarUrl;
+
       if (avatarFile) {
         newAvatarUrl = await uploadAvatar();
         if (!newAvatarUrl) {
-          setMessage({ type: 'error', text: 'Erro ao enviar a foto. Tente novamente.' });
           setSaving(false);
           return;
         }
       }
 
+      const updateData = {
+        name: form.name,
+        avatar_url: newAvatarUrl,
+      };
+
+      if (form.phone !== undefined) updateData.phone = form.phone || null;
+      if (form.nickname !== undefined) updateData.nickname = form.nickname || null;
+      if (form.birthdate !== undefined) updateData.birthdate = form.birthdate || null;
+
       const { error } = await supabase
         .from('users')
-        .update({
-          name: form.name,
-          nickname: form.nickname || null,
-          phone: form.phone || null,
-          birthdate: form.birthdate || null,
-          avatar_url: newAvatarUrl,
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) {
-        setMessage({ type: 'error', text: 'Erro ao salvar: ' + error.message });
+        console.error('Update error:', error);
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          setMessage({ type: 'error', text: 'Execute a migração SQL no Supabase primeiro. Veja: database/add-user-profile-fields.sql' });
+        } else {
+          setMessage({ type: 'error', text: 'Erro ao salvar: ' + error.message });
+        }
       } else {
         setAvatarUrl(newAvatarUrl);
         setAvatarFile(null);
@@ -121,6 +130,7 @@ export default function UserProfile() {
         await refreshProfile();
       }
     } catch (err) {
+      console.error('Unexpected error:', err);
       setMessage({ type: 'error', text: 'Erro inesperado: ' + err.message });
     } finally {
       setSaving(false);
@@ -197,7 +207,7 @@ export default function UserProfile() {
               type="text"
               value={form.nickname}
               onChange={handleChange}
-              placeholder="Como prefende ser chamado"
+              placeholder="Como prefere ser chamado"
             />
           </div>
 
