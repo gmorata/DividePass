@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell } from 'lucide-react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell, ArrowUpDown } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
@@ -13,14 +13,52 @@ const CYCLE_LABELS = {
   annual: 'ano',
 };
 
+const CATEGORIES = [
+  { key: 'all', label: 'Todos', icon: '🔍' },
+  { key: 'streaming', label: 'Streaming', icon: '📺' },
+  { key: 'musica', label: 'Música', icon: '🎵' },
+  { key: 'ia', label: 'IA', icon: '🤖' },
+  { key: 'cursos', label: 'Cursos', icon: '🎓' },
+  { key: 'produtividade', label: 'Produtividade', icon: '💼' },
+  { key: 'ferramentas', label: 'Ferramentas', icon: '🛠' },
+  { key: 'leitura', label: 'Leitura', icon: '📚' },
+  { key: 'games', label: 'Games', icon: '🎮' },
+  { key: 'saude', label: 'Saúde', icon: '🏋️' },
+  { key: 'seguranca', label: 'Segurança', icon: '🔒' },
+];
+
+const CATEGORY_KEYWORDS = {
+  streaming: ['filmes', 'series', 'video', 'streaming', 'tv', 'netflix', 'disney', 'max', 'prime', 'globoplay', 'paramount', 'apple tv', 'crunchyroll', 'mubi'],
+  musica: ['musica', 'music', 'podcast', 'audio', 'spotify', 'deezer', 'tidal', 'audible'],
+  ia: ['ia', 'ai', 'inteligencia', 'artificial', 'chatgpt', 'claude', 'gemini', 'midjourney', 'perplexity', 'cursor', 'elevenlabs', 'runway', 'gpt'],
+  cursos: ['curso', 'cursos', 'educacao', 'aprender', 'estudar', 'alura', 'udemy', 'coursera', 'domestika', 'duolingo', 'rocketseat', 'aula'],
+  produtividade: ['produtividade', 'trabalho', 'colaboracao', 'microsoft', 'google', 'notion', 'trello', 'clickup', 'slack', 'office'],
+  ferramentas: ['design', 'edicao', 'marketing', 'canva', 'adobe', 'figma', 'semrush', 'envato', 'grammarly', 'criativo'],
+  leitura: ['livro', 'leitura', 'kindle', 'scribd', 'readly', 'ebook', 'revista'],
+  games: ['jogo', 'jogos', 'game', 'games', 'xbox', 'playstation', 'nintendo', 'geforce', 'gamer'],
+  saude: ['saude', 'fitness', 'exercicio', 'bem estar', 'wellhub', 'strava', 'headspace', 'calm', 'academia'],
+  seguranca: ['seguranca', 'vpn', 'senha', 'senhas', 'nordvpn', 'surfshark', 'bitwarden', '1password', 'protecao'],
+};
+
+const SORT_OPTIONS = [
+  { key: 'popular', label: 'Mais populares' },
+  { key: 'price_asc', label: 'Menor preço' },
+  { key: 'price_desc', label: 'Maior preço' },
+  { key: 'spots', label: 'Mais vagas' },
+  { key: 'newest', label: 'Mais recentes' },
+];
+
 function Catalog() {
   const { serviceId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { streamingServices, getAvailableServices, isSubscribedToService } = useAppDataContext();
 
   const [search, setSearch] = useState('');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || 'all');
+  const [sortBy, setSortBy] = useState('popular');
   const [interestModal, setInterestModal] = useState(false);
   const [interestMsg, setInterestMsg] = useState('');
   const [interestSent, setInterestSent] = useState(false);
@@ -30,6 +68,23 @@ function Catalog() {
   const selectedService = serviceId
     ? streamingServices.find(s => s.id === serviceId || s.slug === serviceId)
     : null;
+
+  useEffect(() => {
+    const cat = searchParams.get('categoria');
+    if (cat && CATEGORIES.find(c => c.key === cat)) {
+      setSelectedCategory(cat);
+    }
+  }, [searchParams]);
+
+  const handleCategoryChange = (key) => {
+    setSelectedCategory(key);
+    if (key === 'all') {
+      searchParams.delete('categoria');
+    } else {
+      searchParams.set('categoria', key);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
 
   useEffect(() => {
     if (!selectedService || !serviceId) return;
@@ -120,8 +175,35 @@ function Catalog() {
     if (verifiedOnly) {
       result = result.filter(g => g.verified);
     }
+    if (sortBy === 'price_asc') {
+      result = [...result].sort((a, b) => a.price_per_slot - b.price_per_slot);
+    } else if (sortBy === 'price_desc') {
+      result = [...result].sort((a, b) => b.price_per_slot - a.price_per_slot);
+    } else if (sortBy === 'spots') {
+      result = [...result].sort((a, b) => getSpots(b, selectedService) - getSpots(a, selectedService));
+    }
     return result;
-  }, [allServiceGroups, search, verifiedOnly]);
+  }, [allServiceGroups, search, verifiedOnly, sortBy, selectedService]);
+
+  const filteredServices = useMemo(() => {
+    let result = availableServices;
+
+    if (selectedCategory !== 'all') {
+      result = result.filter(s => s.category === selectedCategory);
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(s => {
+        if (s.name?.toLowerCase().includes(q)) return true;
+        if (s.fullName?.toLowerCase().includes(q)) return true;
+        if (s.category && CATEGORY_KEYWORDS[s.category]?.some(kw => kw.includes(q) || q.includes(kw))) return true;
+        return false;
+      });
+    }
+
+    return result;
+  }, [availableServices, selectedCategory, search]);
 
   if (selectedService) {
     return (
@@ -172,6 +254,15 @@ function Catalog() {
             <BadgeCheck size={16} />
             Verificados
           </button>
+          <select
+            className="sort-select"
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+          >
+            {SORT_OPTIONS.map(opt => (
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
         {filteredGroups.length === 0 && (
@@ -222,7 +313,7 @@ function Catalog() {
                           className="progress-fill"
                           style={{
                             width: `${maxSize > 0 ? (activeMembers / maxSize) * 100 : 0}%`,
-                            backgroundColor: full ? '#EF4444' : '#22C55E'
+                            backgroundColor: full ? '#EF4444' : 'var(--economy)'
                           }}
                         />
                       </div>
@@ -321,36 +412,81 @@ function Catalog() {
         <p>Assine novos serviços dividindo o valor com outras pessoas.</p>
       </div>
 
-      <div className="catalog-grid">
-        {availableServices.map((service, index) => {
-          const subscribed = isSubscribedToService(service.id);
-
-          return (
-            <div
-              className={`catalog-card ${subscribed ? 'subscribed' : ''}`}
-              key={service.id}
-              style={{ animationDelay: `${index * 0.06}s` }}
-            >
-              <div className="catalog-header" style={{ backgroundColor: service.color }}>
-                {service.icon_url ? (
-                  <img src={service.icon_url} alt={service.name} className="catalog-logo" />
-                ) : (
-                  <div className="catalog-icon-text">{service.icon || service.name[0]}</div>
-                )}
-              </div>
-              <div className="catalog-body">
-                <h3>{service.name}</h3>
-                <Link
-                  to={`/dashboard/catalog/${service.slug || service.id}`}
-                  className={`catalog-btn ${subscribed ? 'catalog-btn-subscribed' : 'catalog-btn-primary'}`}
-                >
-                  {subscribed ? 'Já Assinado' : 'Assinar Agora'}
-                </Link>
-              </div>
-            </div>
-          );
-        })}
+      <div className="catalog-toolbar">
+        <div className="catalog-search-wrap">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Buscar serviço ou categoria..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="search-clear" onClick={() => setSearch('')}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
+
+      <div className="category-filter-bar">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.key}
+            className={`category-pill ${selectedCategory === cat.key ? 'active' : ''}`}
+            onClick={() => handleCategoryChange(cat.key)}
+          >
+            <span className="category-pill-icon">{cat.icon}</span>
+            <span className="category-pill-label">{cat.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {filteredServices.length === 0 ? (
+        <div className="empty-groups">
+          <p>Nenhum serviço encontrado para "{search || CATEGORIES.find(c => c.key === selectedCategory)?.label}".</p>
+          <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => { setSelectedCategory('all'); setSearch(''); }}>
+            Ver Todos os Serviços
+          </button>
+        </div>
+      ) : (
+        <div className="catalog-grid">
+          {filteredServices.map((service, index) => {
+            const subscribed = isSubscribedToService(service.id);
+            const catInfo = CATEGORIES.find(c => c.key === service.category);
+
+            return (
+              <div
+                className={`catalog-card ${subscribed ? 'subscribed' : ''}`}
+                key={service.id}
+                style={{ animationDelay: `${index * 0.06}s` }}
+              >
+                <div className="catalog-header" style={{ backgroundColor: service.color }}>
+                  {service.icon_url ? (
+                    <img src={service.icon_url} alt={service.name} className="catalog-logo" />
+                  ) : (
+                    <div className="catalog-icon-text">{service.icon || service.name[0]}</div>
+                  )}
+                </div>
+                <div className="catalog-body">
+                  <h3>{service.name}</h3>
+                  {catInfo && (
+                    <span className="category-badge">
+                      {catInfo.icon} {catInfo.label}
+                    </span>
+                  )}
+                  <Link
+                    to={`/dashboard/catalog/${service.slug || service.id}`}
+                    className={`catalog-btn ${subscribed ? 'catalog-btn-subscribed' : 'catalog-btn-primary'}`}
+                  >
+                    {subscribed ? 'Já Assinado' : 'Assinar Agora'}
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

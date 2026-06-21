@@ -194,6 +194,39 @@ export default function Home() {
 
         </section>
 
+        <section className="categories-section">
+          <div className="section-header">
+            <span className="section-tag">Categorias</span>
+            <h2 className="section-title">Encontre o que procura</h2>
+            <p className="section-description">
+              Navegue por categorias e encontre exatamente o serviço que você precisa.
+            </p>
+          </div>
+          <div className="categories-grid">
+            {[
+              { icon: '📺', label: 'Streaming', key: 'streaming' },
+              { icon: '🎵', label: 'Música', key: 'musica' },
+              { icon: '🤖', label: 'IA', key: 'ia' },
+              { icon: '🎓', label: 'Cursos', key: 'cursos' },
+              { icon: '💼', label: 'Produtividade', key: 'produtividade' },
+              { icon: '🛠', label: 'Ferramentas', key: 'ferramentas' },
+              { icon: '📚', label: 'Leitura', key: 'leitura' },
+              { icon: '🎮', label: 'Games', key: 'games' },
+              { icon: '🏋️', label: 'Saúde', key: 'saude' },
+              { icon: '🔒', label: 'Segurança', key: 'seguranca' },
+            ].map((cat) => (
+              <Link
+                key={cat.key}
+                to={`/dashboard/catalog?categoria=${cat.key}`}
+                className="category-card"
+              >
+                <span className="category-card-icon">{cat.icon}</span>
+                <span className="category-card-label">{cat.label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section id="servicos" className="services-section">
           <div className="section-header">
             <span className="section-tag">Serviços</span>

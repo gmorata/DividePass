@@ -429,6 +429,50 @@
   line-height: 1.6;
 }
 
+/* Categories Quick Access */
+.categories-section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 2rem;
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1rem;
+  background: var(--home-surface);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius);
+  text-decoration: none;
+  color: var(--home-text);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.category-card:hover {
+  background: var(--home-surface-hover);
+  border-color: var(--home-border-strong);
+  transform: translateY(-4px);
+}
+
+.category-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.category-card-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 /* Services */
 .services-section {
   max-width: 1280px;
@@ -1033,6 +1077,10 @@
     font-size: 0.85rem;
   }
 
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .navbar-nav {
     position: fixed;
     top: 70px;
@@ -1130,6 +1178,11 @@
 }
 
 @media (max-width: 480px) {
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
   .lp-services-grid {
     grid-template-columns: 1fr;
   }
