@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Save, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import { optimizeImage } from '../../lib/imageOptimizer';
 import './UserProfile.css';
 
 export default function UserProfile() {
@@ -43,7 +44,7 @@ export default function UserProfile() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -51,15 +52,12 @@ export default function UserProfile() {
       setMessage({ type: 'error', text: 'Selecione uma imagem válida.' });
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'A imagem deve ter no máximo 2MB.' });
-      return;
-    }
 
-    setAvatarFile(file);
+    const optimized = await optimizeImage(file, 'avatar');
+    setAvatarFile(optimized);
     const reader = new FileReader();
     reader.onload = (ev) => setAvatarPreview(ev.target.result);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(optimized);
   };
 
   const uploadAvatar = async () => {

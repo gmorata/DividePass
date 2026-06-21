@@ -2,7 +2,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Save, Check, ImageIcon, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { optimizeImage } from '../../lib/imageOptimizer';
 import './Platforms.css';
+
+const CATEGORIES = [
+  { value: 'streaming', label: 'Streaming', icon: '📺', desc: 'Filmes, séries e esportes' },
+  { value: 'musica', label: 'Música', icon: '🎵', desc: 'Música, podcasts e audiobooks' },
+  { value: 'ia', label: 'IA', icon: '🤖', desc: 'Inteligência artificial' },
+  { value: 'cursos', label: 'Cursos', icon: '🎓', desc: 'Educação e capacitação' },
+  { value: 'produtividade', label: 'Produtividade', icon: '💼', desc: 'Trabalho e colaboração' },
+  { value: 'ferramentas', label: 'Ferramentas', icon: '🛠', desc: 'Design, marketing e edição' },
+  { value: 'leitura', label: 'Leitura', icon: '📚', desc: 'Livros e conteúdo digital' },
+  { value: 'games', label: 'Games', icon: '🎮', desc: 'Assinaturas para jogos' },
+  { value: 'saude', label: 'Saúde', icon: '🏋️', desc: 'Fitness e qualidade de vida' },
+  { value: 'seguranca', label: 'Segurança', icon: '🔒', desc: 'VPN, senhas e proteção' },
+];
 
 function PlatformForm() {
   const { platformId } = useParams();
@@ -20,6 +34,7 @@ function PlatformForm() {
     full_name: '',
     icon: '',
     color: '#4F46E5',
+    category: 'streaming',
     description: '',
     official_price: '',
     max_group_size: 4,
@@ -49,6 +64,7 @@ function PlatformForm() {
         full_name: data.full_name || '',
         icon: data.icon || '',
         color: data.color || '#4F46E5',
+        category: data.category || 'streaming',
         description: data.description || '',
         official_price: data.official_price || '',
         max_group_size: data.max_group_size || 4,
@@ -61,15 +77,16 @@ function PlatformForm() {
     load();
   }, [platformId, isEditing, navigate]);
 
-  const handleIconChange = (e) => {
+  const handleIconChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       alert('Selecione uma imagem.');
       return;
     }
-    setIconFile(file);
-    setIconPreview(URL.createObjectURL(file));
+    const optimized = await optimizeImage(file, 'icon');
+    setIconFile(optimized);
+    setIconPreview(URL.createObjectURL(optimized));
   };
 
   const handleSubmit = async (e) => {
@@ -107,6 +124,7 @@ function PlatformForm() {
           .replace(/^-|-$/g, ''),
         icon: formData.icon,
         color: formData.color,
+        category: formData.category,
         description: formData.description || null,
         icon_url: iconUrl || null,
         official_price: formData.official_price ? parseFloat(formData.official_price) : null,
@@ -143,6 +161,8 @@ function PlatformForm() {
       </div>
     );
   }
+
+  const selectedCat = CATEGORIES.find(c => c.value === formData.category);
 
   return (
     <div className="fade-in platform-form-page">
@@ -181,6 +201,24 @@ function PlatformForm() {
                 placeholder="Netflix Premium"
                 required
               />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Categoria *</label>
+            <div className="category-selector">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  className={`category-option ${formData.category === cat.value ? 'selected' : ''}`}
+                  onClick={() => setFormData({ ...formData, category: cat.value })}
+                >
+                  <span className="category-option-icon">{cat.icon}</span>
+                  <span className="category-option-label">{cat.label}</span>
+                  <span className="category-option-desc">{cat.desc}</span>
+                </button>
+              ))}
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, ImageIcon, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { useSupportImageUpload } from '../../hooks/useSupportImageUpload';
 import './Support.css';
 
 function CreateTicket() {
@@ -10,48 +11,15 @@ function CreateTicket() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
   const [form, setForm] = useState({
     subject: '',
     category: 'general',
     message: '',
   });
+  const { imageFile, imagePreview, handleImageChange, removeImage, uploadImage } = useSupportImageUpload();
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Selecione uma imagem.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Imagem muito grande. Máximo 5MB.');
-      return;
-    }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
-
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview('');
-  };
-
-  const uploadImage = async () => {
-    if (!imageFile) return null;
-    const fileExt = imageFile.name.split('.').pop();
-    const fileName = `support/${crypto.randomUUID()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from('support-images')
-      .upload(fileName, imageFile);
-    if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('support-images').getPublicUrl(fileName);
-    return data.publicUrl;
   };
 
   const handleSubmit = async (e) => {

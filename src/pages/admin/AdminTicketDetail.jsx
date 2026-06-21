@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Send, User, Headphones, MessageSquare, ImageIcon, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { useSupportImageUpload } from '../../hooks/useSupportImageUpload';
 import '../user/Support.css';
 
 function AdminTicketDetail() {
@@ -14,9 +15,8 @@ function AdminTicketDetail() {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
   const messagesEndRef = useRef(null);
+  const { imageFile, imagePreview, handleImageChange, removeImage, uploadImage } = useSupportImageUpload();
 
   useEffect(() => {
     let cancelled = false;
@@ -45,38 +45,6 @@ function AdminTicketDetail() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Selecione uma imagem.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Imagem muito grande. Máximo 5MB.');
-      return;
-    }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
-
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview('');
-  };
-
-  const uploadImage = async () => {
-    if (!imageFile) return null;
-    const fileExt = imageFile.name.split('.').pop();
-    const fileName = `support/${crypto.randomUUID()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from('support-images')
-      .upload(fileName, imageFile);
-    if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('support-images').getPublicUrl(fileName);
-    return data.publicUrl;
-  };
 
   const handleSend = async (e) => {
     e.preventDefault();
