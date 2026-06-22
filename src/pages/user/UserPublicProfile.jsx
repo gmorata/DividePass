@@ -16,7 +16,7 @@ function UserPublicProfile() {
     const load = async () => {
       const { data: userData, error: userErr } = await supabase
         .from('users')
-        .select('id, name, avatar_url, nickname, created_at')
+        .select('id, name, avatar_url, nickname, created_at, role')
         .eq('id', userId)
         .single();
 
@@ -125,7 +125,10 @@ function UserPublicProfile() {
           ) : (
             <div className="up-avatar-placeholder">{initials}</div>
           )}
-          <h1>{profile.nickname || profile.name}</h1>
+          <h1>
+            {profile.nickname || profile.name}
+            {profile.role === 'admin' && <span className="up-official-badge">✓ Oficial</span>}
+          </h1>
           {profile.nickname && <p className="up-full-name">{profile.name}</p>}
           <div className="up-meta">
             <span className="up-meta-item">

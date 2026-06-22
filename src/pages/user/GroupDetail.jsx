@@ -42,7 +42,7 @@ function GroupDetail() {
         *,
         service:service_id (*),
         members:group_members (*, user:user_id (id, name, avatar_url, created_at)),
-        owner:owner_id (id, name, avatar_url, created_at, email)
+        owner:owner_id (id, name, avatar_url, created_at, email, role)
       `;
 
       let data = null;
@@ -301,17 +301,18 @@ function GroupDetail() {
 
             {/* Criado por */}
             {owner && (
-              <Link to={`/dashboard/user/${owner.id}`} className="gd-created-by">
+              <Link to={`/dashboard/user/${owner.id}`} className={`gd-created-by ${owner.role === 'admin' ? 'official' : ''}`}>
                 <span className="gd-created-by-label">Criado por:</span>
                 <div className="gd-created-by-profile">
                   {owner.avatar_url ? (
                     <img src={owner.avatar_url} alt={owner.name} className="gd-created-by-avatar" />
                   ) : (
                     <div className="gd-created-by-avatar-placeholder">
-                      {(owner.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                      {owner.role === 'admin' ? 'DP' : (owner.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                   )}
-                  <span className="gd-created-by-name">{owner.name || 'Administrador'}</span>
+                  <span className="gd-created-by-name">{owner.role === 'admin' ? 'DividePass' : (owner.name || 'Administrador')}</span>
+                  {owner.role === 'admin' && <span className="gd-official-seal">✓ Oficial</span>}
                 </div>
               </Link>
             )}

@@ -654,6 +654,27 @@
   color: var(--text-main);
 }
 
+.group-card-official-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(79, 70, 229, 0.1);
+  padding: 0.15rem 0.45rem;
+  border-radius: 1rem;
+  margin-left: auto;
+}
+
+.group-card-creator.official .group-card-creator-avatar-placeholder {
+  background: linear-gradient(135deg, var(--primary), #818CF8);
+}
+
+.group-card-creator.official .group-card-creator strong {
+  color: var(--primary);
+}
+
 .group-card-footer {
   margin-top: 1.5rem;
 }

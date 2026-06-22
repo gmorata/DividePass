@@ -100,7 +100,7 @@ function Catalog() {
           service:service_id (*),
           members:group_members (*),
           credential:group_credentials (*),
-          owner:owner_id (id, name, email, avatar_url)
+          owner:owner_id (id, name, email, avatar_url, role)
         `)
         .eq('service_id', selectedService.id)
         .in('status', ['open', 'forming']);
@@ -353,21 +353,23 @@ function Catalog() {
                   </div>
 
                   {group.owner ? (
-                    <Link to={`/dashboard/user/${group.owner.id}`} className="group-card-creator">
+                    <Link to={`/dashboard/user/${group.owner.id}`} className={`group-card-creator ${group.owner.role === 'admin' ? 'official' : ''}`}>
                       {group.owner.avatar_url ? (
                         <img src={group.owner.avatar_url} alt="" className="group-card-creator-avatar" />
                       ) : (
                         <div className="group-card-creator-avatar-placeholder">
-                          {(group.owner.name || 'U')[0].toUpperCase()}
+                          {group.owner.role === 'admin' ? 'DP' : (group.owner.name || 'U')[0].toUpperCase()}
                         </div>
                       )}
-                      <span>Criado por: <strong>{group.owner.name || 'Admin'}</strong></span>
+                      <span>Criado por: <strong>{group.owner.role === 'admin' ? 'DividePass' : (group.owner.name || 'Admin')}</strong></span>
+                      {group.owner.role === 'admin' && <span className="group-card-official-seal">Oficial</span>}
                     </Link>
                   ) : (
-                    <div className="group-card-creator">
-                      <div className="group-card-creator-avatar-placeholder" style={{ background: 'var(--primary)' }}>DP</div>
+                    <Link to="/dashboard/profile" className="group-card-creator official">
+                      <div className="group-card-creator-avatar-placeholder">DP</div>
                       <span>Criado por: <strong>DividePass</strong></span>
-                    </div>
+                      <span className="group-card-official-seal">Oficial</span>
+                    </Link>
                   )}
                 </div>
 
