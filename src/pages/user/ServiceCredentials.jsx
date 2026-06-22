@@ -67,28 +67,37 @@ function ServiceCredentials() {
     setLastFetchTime(now);
 
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-email-code', {
-        body: { group_id: activeService.group.id },
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
 
-      if (error) {
-        const msg = error.message || JSON.stringify(error);
-        if (msg.includes('non-2xx')) {
-          setCodeMessage('Erro ao buscar código. Verifique a configuração IMAP do grupo.');
-        } else {
-          setCodeMessage(msg);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-email-code`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ group_id: activeService.group.id }),
         }
+      );
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        setCodeMessage(json.error || `Erro ${res.status}: falha ao buscar código`);
         return;
       }
 
-      if (data?.code) {
-        setVerificationCode(data);
+      if (json.code) {
+        setVerificationCode(json);
         setCodeMessage('');
       } else {
-        setCodeMessage(data?.message || 'Nenhum código encontrado');
+        setCodeMessage(json.message || 'Nenhum código encontrado');
       }
     } catch (err) {
-      setCodeMessage('Erro ao conectar ao servidor');
+      setCodeMessage(`Erro ao conectar: ${err.message}`);
     } finally {
       setFetchingCode(false);
     }
