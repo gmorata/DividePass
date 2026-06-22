@@ -352,7 +352,7 @@ function Catalog() {
                     </span>
                   </div>
 
-                  {group.owner && (
+                  {group.owner ? (
                     <Link to={`/dashboard/user/${group.owner.id}`} className="group-card-creator">
                       {group.owner.avatar_url ? (
                         <img src={group.owner.avatar_url} alt="" className="group-card-creator-avatar" />
@@ -363,6 +363,11 @@ function Catalog() {
                       )}
                       <span>Criado por: <strong>{group.owner.name || 'Admin'}</strong></span>
                     </Link>
+                  ) : (
+                    <div className="group-card-creator">
+                      <div className="group-card-creator-avatar-placeholder" style={{ background: 'var(--primary)' }}>DP</div>
+                      <span>Criado por: <strong>DividePass</strong></span>
+                    </div>
                   )}
                 </div>
 
