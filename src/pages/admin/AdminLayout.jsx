@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import ThemeToggle from '../../components/ThemeToggle';
+import logoImg from '../../assets/logo.png';
 import './AdminLayout.css';
 
 function AdminLayout() {
@@ -32,7 +33,10 @@ function AdminLayout() {
       {menuOpen && <div className="admin-mobile-overlay" onClick={closeMenu}></div>}
 
       <aside className={`admin-sidebar ${menuOpen ? 'open' : ''}`}>
-        <div className="admin-logo">DP <span>Admin</span></div>
+        <Link to="/admin" className="admin-logo">
+          <img src={logoImg} alt="DP" className="admin-logo-img" />
+          <span>Admin</span>
+        </Link>
         <nav className="admin-nav">
           <Link onClick={closeMenu} to="/admin" className={`nav-item ${isActive('/admin')}`}>Dashboard</Link>
           <Link onClick={closeMenu} to="/admin/users" className={`nav-item ${isActive('/admin/users')}`}>Usuários</Link>

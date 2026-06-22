@@ -35,6 +35,12 @@
   font-size: 1.1rem;
 }
 
+.payment-return-logo-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
 .payment-return-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);

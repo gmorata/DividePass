@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import ThemeToggle from '../../components/ThemeToggle';
+import logoImg from '../../assets/logo.png';
 import './UserLayout.css';
 
 function UserLayout() {
@@ -41,7 +42,10 @@ function UserLayout() {
       {menuOpen && <div className="mobile-overlay" onClick={closeMenu}></div>}
 
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
-        <div className="logo">Divide<span>Pass</span></div>
+        <Link to="/dashboard" className="logo">
+          <img src={logoImg} alt="DividePass" className="logo-img" />
+          <span>Divide<span>Pass</span></span>
+        </Link>
         <nav className="nav-menu">
           <Link onClick={closeMenu} to="/dashboard" className={`nav-item ${isActive('/dashboard')}`}>Visão Geral</Link>
           <Link onClick={closeMenu} to="/dashboard/catalog" className={`nav-item ${isActive('/dashboard/catalog')}`}>Catálogo</Link>

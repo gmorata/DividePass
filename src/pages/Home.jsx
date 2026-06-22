@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import logoImg from '../assets/logo.png';
 import {
   ChevronRight,
+  ChevronLeft,
   Play,
   Shield,
   Zap,
@@ -13,25 +15,40 @@ import {
   Menu,
   X,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  Search,
+  Pin
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
+import { supabase } from '../lib/supabase';
 import './Home.css';
 
-const services = [
-  { name: 'Netflix', domain: 'netflix.com', category: 'Streaming' },
-  { name: 'Spotify', domain: 'spotify.com', category: 'Música' },
-  { name: 'Disney+', domain: 'disneyplus.com', category: 'Streaming' },
-  { name: 'HBO Max', domain: 'max.com', category: 'Streaming' },
-  { name: 'Prime Video', domain: 'primevideo.com', category: 'Streaming' },
-  { name: 'YouTube Premium', domain: 'youtube.com', category: 'Streaming' },
-  { name: 'Globoplay', domain: 'globoplay.globo.com', category: 'Streaming' },
-  { name: 'Canva Pro', domain: 'canva.com', category: 'Produtividade' },
-  { name: 'ChatGPT Plus', domain: 'chatgpt.com', category: 'IA' },
-  { name: 'Microsoft 365', domain: 'office.com', category: 'Produtividade' },
-  { name: 'Adobe Creative', domain: 'adobe.com', category: 'Criativo' },
-  { name: 'Deezer', domain: 'deezer.com', category: 'Música' }
+const CATEGORIES = [
+  { key: 'all', label: 'Todos', icon: '🔍' },
+  { key: 'streaming', label: 'Streaming', icon: '📺' },
+  { key: 'musica', label: 'Música', icon: '🎵' },
+  { key: 'ia', label: 'IA', icon: '🤖' },
+  { key: 'cursos', label: 'Cursos', icon: '🎓' },
+  { key: 'produtividade', label: 'Produtividade', icon: '💼' },
+  { key: 'ferramentas', label: 'Ferramentas', icon: '🛠' },
+  { key: 'leitura', label: 'Leitura', icon: '📚' },
+  { key: 'games', label: 'Games', icon: '🎮' },
+  { key: 'saude', label: 'Saúde', icon: '🏋️' },
+  { key: 'seguranca', label: 'Segurança', icon: '🔒' },
 ];
+
+const CATEGORY_KEYWORDS = {
+  streaming: ['filmes', 'series', 'video', 'streaming', 'tv', 'netflix', 'disney', 'max', 'prime', 'globoplay', 'paramount', 'apple tv', 'crunchyroll', 'mubi'],
+  musica: ['musica', 'music', 'podcast', 'audio', 'spotify', 'deezer', 'tidal', 'audible'],
+  ia: ['ia', 'ai', 'inteligencia', 'artificial', 'chatgpt', 'claude', 'gemini', 'midjourney', 'perplexity', 'cursor', 'elevenlabs', 'runway', 'gpt'],
+  cursos: ['curso', 'cursos', 'educacao', 'aprender', 'estudar', 'alura', 'udemy', 'coursera', 'domestika', 'duolingo', 'rocketseat', 'aula'],
+  produtividade: ['produtividade', 'trabalho', 'colaboracao', 'microsoft', 'google', 'notion', 'trello', 'clickup', 'slack', 'office'],
+  ferramentas: ['design', 'edicao', 'marketing', 'canva', 'adobe', 'figma', 'semrush', 'envato', 'grammarly', 'criativo'],
+  leitura: ['livro', 'leitura', 'kindle', 'scribd', 'readly', 'ebook', 'revista'],
+  games: ['jogo', 'jogos', 'game', 'games', 'xbox', 'playstation', 'nintendo', 'geforce', 'gamer'],
+  saude: ['saude', 'fitness', 'exercicio', 'bem estar', 'wellhub', 'strava', 'headspace', 'calm', 'academia'],
+  seguranca: ['seguranca', 'vpn', 'senha', 'senhas', 'nordvpn', 'surfshark', 'bitwarden', '1password', 'protecao'],
+};
 
 const steps = [
   {
@@ -100,6 +117,69 @@ export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
+  const [allServices, setAllServices] = useState([]);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const categoryBarRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from('streaming_services')
+      .select('id, name, full_name, slug, icon, icon_url, color, category, pinned, featured')
+      .eq('status', 'active')
+      .order('name')
+      .then(({ data }) => {
+        if (data) {
+          data.sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            if (a.featured && !b.featured) return -1;
+            if (!a.featured && b.featured) return 1;
+            return 0;
+          });
+          setAllServices(data);
+        }
+      });
+  }, []);
+
+  const filteredServices = allServices.filter(s => {
+    const q = search.toLowerCase().trim();
+    if (q) {
+      const nameMatch = (s.name || '').toLowerCase().includes(q);
+      const fullMatch = (s.full_name || '').toLowerCase().includes(q);
+      const catMatch = s.category && CATEGORY_KEYWORDS[s.category]?.some(kw => kw.includes(q) || q.includes(kw));
+      if (!nameMatch && !fullMatch && !catMatch) return false;
+    }
+    if (selectedCategory !== 'all' && s.category !== selectedCategory) return false;
+    return true;
+  });
+
+  const updateScrollArrows = () => {
+    const el = categoryBarRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  useEffect(() => {
+    const el = categoryBarRef.current;
+    if (!el) return;
+    updateScrollArrows();
+    el.addEventListener('scroll', updateScrollArrows, { passive: true });
+    window.addEventListener('resize', updateScrollArrows);
+    return () => {
+      el.removeEventListener('scroll', updateScrollArrows);
+      window.removeEventListener('resize', updateScrollArrows);
+    };
+  }, [allServices]);
+
+  const scrollCategories = (dir) => {
+    const el = categoryBarRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 200, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -125,7 +205,7 @@ export default function Home() {
       <header className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-content">
           <Link to="/" className="logo">
-            <span className="logo-icon">D</span>
+            <img src={logoImg} alt="DividePass" className="logo-img" />
             <span>DividePass</span>
           </Link>
 
@@ -194,39 +274,6 @@ export default function Home() {
 
         </section>
 
-        <section className="categories-section">
-          <div className="section-header">
-            <span className="section-tag">Categorias</span>
-            <h2 className="section-title">Encontre o que procura</h2>
-            <p className="section-description">
-              Navegue por categorias e encontre exatamente o serviço que você precisa.
-            </p>
-          </div>
-          <div className="categories-grid">
-            {[
-              { icon: '📺', label: 'Streaming', key: 'streaming' },
-              { icon: '🎵', label: 'Música', key: 'musica' },
-              { icon: '🤖', label: 'IA', key: 'ia' },
-              { icon: '🎓', label: 'Cursos', key: 'cursos' },
-              { icon: '💼', label: 'Produtividade', key: 'produtividade' },
-              { icon: '🛠', label: 'Ferramentas', key: 'ferramentas' },
-              { icon: '📚', label: 'Leitura', key: 'leitura' },
-              { icon: '🎮', label: 'Games', key: 'games' },
-              { icon: '🏋️', label: 'Saúde', key: 'saude' },
-              { icon: '🔒', label: 'Segurança', key: 'seguranca' },
-            ].map((cat) => (
-              <Link
-                key={cat.key}
-                to={`/dashboard/catalog?categoria=${cat.key}`}
-                className="category-card"
-              >
-                <span className="category-card-icon">{cat.icon}</span>
-                <span className="category-card-label">{cat.label}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
         <section id="servicos" className="services-section">
           <div className="section-header">
             <span className="section-tag">Serviços</span>
@@ -236,29 +283,72 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="lp-services-grid">
-            {services.map((service) => (
-              <div key={service.name} className="lp-service-card">
-                <div className="lp-service-logo-wrapper">
-                  <img
-                    src={`https://logo.clearbit.com/${service.domain}`}
-                    alt={`${service.name} logo`}
-                    loading="lazy"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <span className="lp-service-fallback">{service.name[0]}</span>
-                </div>
-                <div className="lp-service-info">
-                  <h3>{service.name}</h3>
-                  <span className="lp-service-category">{service.category}</span>
-                </div>
-                <ChevronRight size={18} className="lp-service-arrow" />
-              </div>
-            ))}
+          <div className="home-search-wrap">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Buscar serviço ou categoria..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="home-search-clear" onClick={() => setSearch('')}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="home-category-wrapper">
+            {canScrollLeft && (
+              <button className="home-category-arrow left" onClick={() => scrollCategories(-1)}>
+                <ChevronLeft size={18} />
+              </button>
+            )}
+            <div className="home-category-bar" ref={categoryBarRef}>
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  className={`home-category-pill ${selectedCategory === cat.key ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(cat.key)}
+                >
+                  <span className="home-pill-icon">{cat.icon}</span>
+                  <span className="home-pill-label">{cat.label}</span>
+                </button>
+              ))}
+            </div>
+            {canScrollRight && (
+              <button className="home-category-arrow right" onClick={() => scrollCategories(1)}>
+                <ChevronRight size={18} />
+              </button>
+            )}
+          </div>
+
+          <div className="home-services-grid">
+            {filteredServices.length === 0 ? (
+              <div className="home-empty">Nenhum serviço encontrado.</div>
+            ) : (
+              filteredServices.map((service, index) => (
+                <Link
+                  key={service.id}
+                  to={`/dashboard/catalog/${service.slug || service.id}`}
+                  className={`home-service-card ${service.pinned ? 'home-card-pinned' : ''} ${service.featured ? 'home-card-featured' : ''}`}
+                  style={{ animationDelay: `${index * 0.04}s` }}
+                >
+                  <div className="home-service-header" style={{ backgroundColor: service.color }}>
+                    {service.icon_url ? (
+                      <img src={service.icon_url} alt={service.name} className="home-service-logo" />
+                    ) : (
+                      <div className="home-service-icon-text">{service.icon || service.name[0]}</div>
+                    )}
+                    {service.pinned && <div className="home-badge-pin"><Pin size={10} /></div>}
+                    {service.featured && <div className="home-badge-star">⭐</div>}
+                  </div>
+                  <div className="home-service-body">
+                    <h3>{service.name}</h3>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </section>
 
@@ -412,7 +502,7 @@ export default function Home() {
         <div className="footer-grid">
           <div className="footer-brand">
             <Link to="/" className="logo">
-              <span className="logo-icon">D</span>
+              <img src={logoImg} alt="DividePass" className="logo-img" />
               <span>DividePass</span>
             </Link>
             <p>

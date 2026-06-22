@@ -50,6 +50,16 @@
   color: var(--secondary);
   margin-bottom: 2.5rem;
   letter-spacing: -0.5px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
 .logo span {

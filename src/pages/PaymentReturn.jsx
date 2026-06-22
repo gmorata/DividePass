@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, Loader2, ArrowRight, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAppDataContext } from '../contexts/AppDataContext';
+import logoImg from '../assets/logo.png';
 import './PaymentReturn.css';
 
 function PaymentReturn() {
@@ -152,7 +153,7 @@ function PaymentReturn() {
     <div className="payment-return-page">
       <div className="payment-return-container">
         <div className="payment-return-logo">
-          <span className="logo-icon">D</span>
+          <img src={logoImg} alt="DividePass" className="payment-return-logo-img" />
           <span>DividePass</span>
         </div>
         {renderContent()}

@@ -21,8 +21,11 @@
   gap: 0.75rem;
 }
 
-.not-found-card svg {
-  color: var(--warning);
+.not-found-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
 }
 
 .not-found-card h1 {

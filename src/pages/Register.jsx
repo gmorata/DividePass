@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import logoImg from '../assets/logo.png';
 import './Register.css';
 
 function Register() {
@@ -79,6 +80,9 @@ function Register() {
   return (
     <div className="register-container">
       <div className="register-card">
+        <div className="register-logo">
+          <img src={logoImg} alt="DividePass" />
+        </div>
         <div className="register-header">
           <h2>Criar Conta</h2>
           <p>Junte-se ao DividePass hoje mesmo</p>

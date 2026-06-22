@@ -80,6 +80,19 @@ function GroupDetail() {
     load();
   }, [groupSlug]);
 
+  useEffect(() => {
+    if (owner || !group) return;
+    const fetchAdmin = async () => {
+      const { data } = await supabase
+        .from('users')
+        .select('id, name, avatar_url, role')
+        .limit(1)
+        .maybeSingle();
+      if (data) setOwner(data);
+    };
+    fetchAdmin();
+  }, [group, owner]);
+
   const toggleSection = (key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };

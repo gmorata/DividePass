@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import logoImg from '../assets/logo.png';
 import './Login.css';
 
 function Login() {
@@ -41,6 +42,9 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
+        <div className="login-logo">
+          <img src={logoImg} alt="DividePass" />
+        </div>
         <div className="login-header">
           <h2>Bem-vindo de volta</h2>
           <p>Faça login para continuar no DividePass</p>

@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, Pin, Star } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import './UserDashboard.css';
 
@@ -71,6 +71,15 @@ function UserDashboard() {
     if (selectedCategory !== 'all') {
       services = services.filter(s => s.category === selectedCategory);
     }
+
+    services.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return 0;
+    });
+
     return services;
   }, [availableServices, search, selectedCategory]);
 
@@ -209,7 +218,7 @@ function UserDashboard() {
       {/* Streamings Disponíveis para Assinar */}
       <section className="available-services-section">
         <div className="section-title-row">
-          <h2>Streamings Disponíveis</h2>
+          <h2>Serviços Disponíveis</h2>
           <Link to="/dashboard/catalog" className="btn btn-primary btn-sm">
             Ver Catálogo Completo
           </Link>
@@ -267,7 +276,7 @@ function UserDashboard() {
             filteredServices.map(service => {
               const subscribed = isSubscribedToService(service.id);
               return (
-                <div key={service.id} className="available-service-card">
+                <div key={service.id} className={`available-service-card ${service.pinned ? 'card-pinned' : ''} ${service.featured ? 'card-featured' : ''}`}>
                   <div
                     className="available-service-header"
                     style={{ backgroundColor: service.color }}
@@ -277,6 +286,8 @@ function UserDashboard() {
                     ) : (
                       <div className="available-service-icon">{service.icon || service.name[0]}</div>
                     )}
+                    {service.pinned && <div className="service-badge-pin"><Pin size={10} /></div>}
+                    {service.featured && <div className="service-badge-star"><Star size={10} /></div>}
                   </div>
                   <div className="available-service-body">
                     <h3>{service.name}</h3>

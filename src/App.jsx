@@ -25,6 +25,7 @@ import Share from './pages/user/Share';
 import UserProfile from './pages/user/UserProfile';
 import GroupDetail from './pages/user/GroupDetail';
 import UserPublicProfile from './pages/user/UserPublicProfile';
+import SubscriptionManage from './pages/user/SubscriptionManage';
 
 // Admin Imports
 import AdminLayout from './pages/admin/AdminLayout';
@@ -74,6 +75,7 @@ function App() {
               <Route path="profile" element={<UserProfile />} />
               <Route path="groups/:groupSlug" element={<GroupDetail />} />
               <Route path="user/:userId" element={<UserPublicProfile />} />
+              <Route path="subscription/:subscriptionId" element={<SubscriptionManage />} />
             </Route>
 
             {/* Admin Routes */}

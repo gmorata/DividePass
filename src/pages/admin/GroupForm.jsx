@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Plus, Trash2, CheckCircle, X, Info } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Plus, Trash2, CheckCircle, X, Info, UserPlus, UserMinus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 import './GroupForm.css';
 
 function Toast({ message, onClose }) {
@@ -20,6 +21,7 @@ function Toast({ message, onClose }) {
 }
 
 function GroupForm() {
+  const { user } = useAuth();
   const { groupId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -52,6 +54,18 @@ function GroupForm() {
   const [hasProfiles, setHasProfiles] = useState(false);
   const [profiles, setProfiles] = useState([]);
   const [members, setMembers] = useState([]);
+
+  const [emailCodeEnabled, setEmailCodeEnabled] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [emailImapServer, setEmailImapServer] = useState('');
+  const [emailImapPort, setEmailImapPort] = useState(993);
+  const [emailImapUser, setEmailImapUser] = useState('');
+  const [emailImapPassword, setEmailImapPassword] = useState('');
+  const [emailAllowedSenders, setEmailAllowedSenders] = useState('');
+  const [emailBlockedSubjects, setEmailBlockedSubjects] = useState('');
+
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
 
   const priceSimulation = useMemo(() => {
     const price = parseFloat(formData.price_per_slot) || 0;
@@ -91,6 +105,69 @@ function GroupForm() {
 
   const removeProfile = (index) => {
     setProfiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberEmail.trim() || !groupId) return;
+    setAddingMember(true);
+    try {
+      const { data: targetUser, error: findError } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .eq('email', newMemberEmail.trim())
+        .single();
+
+      if (findError || !targetUser) {
+        alert('Usuário não encontrado com este e-mail.');
+        return;
+      }
+
+      const existingMember = members.find(m => m.user_id === targetUser.id);
+      if (existingMember) {
+        alert('Este usuário já é membro do grupo.');
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: groupId,
+          user_id: targetUser.id,
+          status: 'active',
+        });
+
+      if (insertError) throw insertError;
+
+      setMembers(prev => [...prev, {
+        user_id: targetUser.id,
+        created_at: new Date().toISOString(),
+        user: { id: targetUser.id, name: targetUser.name, email: targetUser.email },
+      }]);
+      setNewMemberEmail('');
+      setToast('Membro adicionado com sucesso!');
+    } catch (err) {
+      alert('Erro ao adicionar membro: ' + err.message);
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!window.confirm('Tem certeza que deseja remover este membro do grupo?')) return;
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .update({ status: 'cancelled', left_at: new Date().toISOString() })
+        .eq('group_id', groupId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setMembers(prev => prev.filter(m => m.user_id !== userId));
+      setToast('Membro removido com sucesso!');
+    } catch (err) {
+      alert('Erro ao remover membro: ' + err.message);
+    }
   };
 
   const getMemberOrder = (userId) => {
@@ -155,6 +232,25 @@ function GroupForm() {
             setHasProfiles(credsRes.data.has_profiles || false);
           }
 
+          if (group) {
+            setEmailCodeEnabled(group.email_code_enabled || false);
+            setEmailAddress(group.email_address || '');
+            setEmailImapServer(group.email_imap_server || '');
+            setEmailImapPort(group.email_imap_port || 993);
+            setEmailImapUser(group.email_imap_user || '');
+            setEmailImapPassword(group.email_imap_password || '');
+            setEmailAllowedSenders(
+              Array.isArray(group.email_allowed_senders)
+                ? group.email_allowed_senders.join('\n')
+                : ''
+            );
+            setEmailBlockedSubjects(
+              Array.isArray(group.email_blocked_subjects)
+                ? group.email_blocked_subjects.join('\n')
+                : ''
+            );
+          }
+
           if (profilesRes.data && profilesRes.data.length > 0) {
             setProfiles(profilesRes.data.map(p => ({
               id: p.id,
@@ -210,6 +306,19 @@ function GroupForm() {
           : [],
         verified: !!formData.verified,
         status: formData.status,
+        owner_id: user?.id || null,
+        email_code_enabled: emailCodeEnabled,
+        email_address: emailCodeEnabled ? emailAddress : null,
+        email_imap_server: emailCodeEnabled ? emailImapServer : null,
+        email_imap_port: emailCodeEnabled ? emailImapPort : 993,
+        email_imap_user: emailCodeEnabled ? emailImapUser : null,
+        email_imap_password: emailCodeEnabled ? emailImapPassword : null,
+        email_allowed_senders: emailCodeEnabled
+          ? emailAllowedSenders.split('\n').map(s => s.trim()).filter(Boolean)
+          : [],
+        email_blocked_subjects: emailCodeEnabled
+          ? emailBlockedSubjects.split('\n').map(s => s.trim()).filter(Boolean)
+          : [],
       };
 
       let groupIdResult = groupId;
@@ -621,6 +730,166 @@ function GroupForm() {
             </div>
           )}
         </section>
+
+        <section className="form-section">
+          <h2>Busca de Código por E-mail (Opcional)</h2>
+          <p className="section-desc">
+            Quando habilitado, os membros do grupo poderão buscar códigos de verificação diretamente pela DividePass, sem precisar acessar o e-mail da conta.
+          </p>
+
+          <div className="toggle-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+            <label className="toggle-label">
+              <input
+                type="checkbox"
+                checked={emailCodeEnabled}
+                onChange={e => setEmailCodeEnabled(e.target.checked)}
+              />
+              <span className="toggle-switch" />
+              <span className="toggle-text">
+                <strong>Habilitar busca de códigos por e-mail</strong>
+                <small>Os membros poderão buscar códigos de verificação enviados para este e-mail</small>
+              </span>
+            </label>
+          </div>
+
+          {emailCodeEnabled && (
+            <div style={{ marginTop: '1.25rem' }}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>E-mail da conta</label>
+                  <input
+                    value={emailAddress}
+                    onChange={e => setEmailAddress(e.target.value)}
+                    placeholder="conta@plataforma.com"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Servidor IMAP</label>
+                  <input
+                    value={emailImapServer}
+                    onChange={e => setEmailImapServer(e.target.value)}
+                    placeholder="imap.zoho.com"
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Usuário IMAP</label>
+                  <input
+                    value={emailImapUser}
+                    onChange={e => setEmailImapUser(e.target.value)}
+                    placeholder="conta@plataforma.com"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Senha IMAP / App Password</label>
+                  <input
+                    type="text"
+                    value={emailImapPassword}
+                    onChange={e => setEmailImapPassword(e.target.value)}
+                    placeholder="Senha ou App Password"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Porta IMAP</label>
+                <input
+                  type="number"
+                  value={emailImapPort}
+                  onChange={e => setEmailImapPort(parseInt(e.target.value, 10) || 993)}
+                  placeholder="993"
+                  style={{ maxWidth: '120px' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Remetentes permitidos (um por linha)</label>
+                <p className="section-desc" style={{ marginBottom: '0.5rem' }}>
+                  Apenas e-mails destes remetentes serão processados. Se vazio, todos são aceitos.
+                </p>
+                <textarea
+                  rows={3}
+                  value={emailAllowedSenders}
+                  onChange={e => setEmailAllowedSenders(e.target.value)}
+                  placeholder={"netflix.com\nno-reply@netflix.com\ndisneyplus.com"}
+                  style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Assuntos bloqueados (um por linha)</label>
+                <p className="section-desc" style={{ marginBottom: '0.5rem' }}>
+                  E-mails com assuntos contendo estes termos serão ignorados.
+                </p>
+                <textarea
+                  rows={3}
+                  value={emailBlockedSubjects}
+                  onChange={e => setEmailBlockedSubjects(e.target.value)}
+                  placeholder={"password\nrecuperação\nredefinição\nsegurança"}
+                  style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                />
+              </div>
+            </div>
+          )}
+        </section>
+
+        {isEditing && (
+          <section className="form-section">
+            <h2>Membros do Grupo</h2>
+            <p className="section-desc">
+              {members.length} membro(s) neste grupo. Você pode adicionar ou remover membros manualmente.
+            </p>
+
+            <div className="members-list">
+              {members.map((member, idx) => (
+                <div key={member.user_id} className="member-entry">
+                  <div className="member-info">
+                    <span className="member-number">#{idx + 1}</span>
+                    <div>
+                      <strong>{member.user?.name || 'Sem nome'}</strong>
+                      <span className="member-email">{member.user?.email || member.user_id}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-icon danger"
+                    onClick={() => handleRemoveMember(member.user_id)}
+                    title="Remover membro"
+                  >
+                    <UserMinus size={16} />
+                  </button>
+                </div>
+              ))}
+
+              {members.length === 0 && (
+                <p className="section-desc" style={{ textAlign: 'center', padding: '1rem' }}>
+                  Nenhum membro neste grupo.
+                </p>
+              )}
+            </div>
+
+            <div className="add-member-row">
+              <input
+                type="email"
+                value={newMemberEmail}
+                onChange={e => setNewMemberEmail(e.target.value)}
+                placeholder="E-mail do usuário para adicionar"
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddMember())}
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={handleAddMember}
+                disabled={addingMember || !newMemberEmail.trim()}
+              >
+                {addingMember ? <Loader2 size={14} className="spin" /> : <UserPlus size={14} />}
+                Adicionar
+              </button>
+            </div>
+          </section>
+        )}
 
         <div className="form-footer">
           <button type="button" className="btn btn-outline" onClick={() => navigate('/admin/groups')}>

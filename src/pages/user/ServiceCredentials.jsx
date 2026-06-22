@@ -10,12 +10,19 @@ import {
   AlertTriangle,
   Calendar,
   RotateCcw,
-  Ban,
-  ScrollText
+  ScrollText,
+  Mail,
+  Loader2,
+  Clock,
+  ExternalLink,
+  Settings,
+  User,
+  MessageCircle
 } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import GroupChat from '../../components/GroupChat';
 import './ServiceCredentials.css';
 
 function ServiceCredentials() {
@@ -25,9 +32,14 @@ function ServiceCredentials() {
   const { streamingServices, getActiveServices, isSubscribedToService } = useAppDataContext();
 
   const [showCredentials, setShowCredentials] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
   const [showPasswords, setShowPasswords] = useState({});
-  const [cancelling, setCancelling] = useState(false);
+
+  const [verificationCode, setVerificationCode] = useState(null);
+  const [fetchingCode, setFetchingCode] = useState(false);
+  const [codeMessage, setCodeMessage] = useState('');
+  const [lastFetchTime, setLastFetchTime] = useState(0);
 
   const activeServices = getActiveServices();
   const activeService = activeServices.find(item => item.service.id === serviceId || item.service.slug === serviceId);
@@ -44,34 +56,41 @@ function ServiceCredentials() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleCancelSubscription = async () => {
-    if (!window.confirm('Tem certeza que deseja cancelar esta assinatura? Você perderá o acesso imediatamente.')) {
-      return;
-    }
+  const handleFetchCode = async () => {
+    if (!activeService?.group?.id) return;
+    const now = Date.now();
+    if (now - lastFetchTime < 15000) return;
 
-    setCancelling(true);
+    setFetchingCode(true);
+    setCodeMessage('');
+    setVerificationCode(null);
+    setLastFetchTime(now);
+
     try {
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .update({ status: 'cancelled', left_at: new Date().toISOString() })
-        .eq('group_id', activeService.group.id)
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.functions.invoke('fetch-email-code', {
+        body: { group_id: activeService.group.id },
+      });
 
-      if (memberError) throw memberError;
+      if (error) {
+        const msg = error.message || JSON.stringify(error);
+        if (msg.includes('non-2xx')) {
+          setCodeMessage('Erro ao buscar código. Verifique a configuração IMAP do grupo.');
+        } else {
+          setCodeMessage(msg);
+        }
+        return;
+      }
 
-      const { error: subError } = await supabase
-        .from('user_subscriptions')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', activeService.id);
-
-      if (subError) throw subError;
-
-      alert('Assinatura cancelada com sucesso.');
-      navigate('/dashboard/credentials');
+      if (data?.code) {
+        setVerificationCode(data);
+        setCodeMessage('');
+      } else {
+        setCodeMessage(data?.message || 'Nenhum código encontrado');
+      }
     } catch (err) {
-      alert('Erro ao cancelar assinatura: ' + err.message);
+      setCodeMessage('Erro ao conectar ao servidor');
     } finally {
-      setCancelling(false);
+      setFetchingCode(false);
     }
   };
 
@@ -143,6 +162,22 @@ function ServiceCredentials() {
             </div>
             <div>
               <h2 style={{ color: service.color }}>{service.full_name}</h2>
+              <div className="credential-subtitle">
+                {service.description && (
+                  <span className="credential-description">{service.description}</span>
+                )}
+                {service.official_url && (
+                  <a
+                    href={service.official_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="credential-site-link"
+                  >
+                    <ExternalLink size={13} />
+                    Site oficial
+                  </a>
+                )}
+              </div>
               {hasProfiles && (
                 <span className="profile-badge">
                   {myProfile ? `Seu perfil: ${myProfile.profile_name}` : 'Perfil não atribuído'}
@@ -150,13 +185,22 @@ function ServiceCredentials() {
               )}
             </div>
           </div>
-          <button
-            className="btn btn-primary access-credentials-btn"
-            onClick={() => setShowCredentials(true)}
-          >
-            <Shield size={18} />
-            Acessar Credenciais
-          </button>
+          <div className="credential-header-actions">
+            <button
+              className="btn btn-primary access-credentials-btn"
+              onClick={() => setShowCredentials(!showCredentials)}
+            >
+              <Shield size={18} />
+              {showCredentials ? 'Ocultar Credenciais' : 'Acessar Credenciais'}
+            </button>
+            <button
+              className={`btn btn-outline chat-toggle-btn ${showChat ? 'active' : ''}`}
+              onClick={() => setShowChat(!showChat)}
+            >
+              <MessageCircle size={18} />
+              Chat do Grupo
+            </button>
+          </div>
         </div>
 
         <div className="credential-body">
@@ -170,63 +214,8 @@ function ServiceCredentials() {
             </div>
           )}
 
-          <div className="credential-info-row">
-            <Shield size={20} />
-            <p>
-              Suas credenciais são atualizadas automaticamente e protegidas. Não compartilhe
-              seus dados de acesso.
-            </p>
-          </div>
-
-          <div className="credential-meta-grid">
-            <div className="credential-meta-item">
-              <Calendar size={18} />
-              <div>
-                <span>Ativada em</span>
-                <strong>{new Date(activeService.started_at || activeService.created_at).toLocaleDateString('pt-BR')}</strong>
-              </div>
-            </div>
-            <div className="credential-meta-item">
-              <RotateCcw size={18} />
-              <div>
-                <span>Renovação</span>
-                <strong>{activeService.expires_at ? new Date(activeService.expires_at).toLocaleDateString('pt-BR') : 'Mensal'}</strong>
-              </div>
-            </div>
-          </div>
-
-          <button
-            className="btn btn-outline cancel-subscription-btn"
-            onClick={handleCancelSubscription}
-            disabled={cancelling}
-          >
-            <Ban size={18} />
-            {cancelling ? 'Cancelando...' : 'Cancelar Assinatura'}
-          </button>
-        </div>
-      </div>
-
-      {showCredentials && (
-        <div className="credentials-modal-overlay" onClick={() => setShowCredentials(false)}>
-          <div className="credentials-modal" onClick={e => e.stopPropagation()}>
-            <div className="credentials-modal-header">
-              <div className="modal-icon" style={{ backgroundColor: service.color }}>
-                {service.icon_url ? (
-                  <img src={service.icon_url} alt={service.name} className="credential-icon-img" />
-                ) : (
-                  service.icon
-                )}
-              </div>
-              <div>
-                <h2>{service.full_name}</h2>
-                <span className="modal-group-name">{group.name}</span>
-              </div>
-              <button className="modal-close-btn" onClick={() => setShowCredentials(false)}>
-                <span>&times;</span>
-              </button>
-            </div>
-
-            <div className="credentials-modal-body">
+          {showCredentials && (
+            <div className="credential-inline-viewer">
               {!mainCredential ? (
                 <div className="no-credentials">
                   <AlertTriangle size={24} />
@@ -235,13 +224,19 @@ function ServiceCredentials() {
               ) : (
                 <>
                   <div className="cred-section">
-                    <h3>Login Compartilhado</h3>
+                    <h3>
+                      <User size={16} />
+                      Login Compartilhado
+                    </h3>
                     {renderCredentialFields(mainCredential, 'main', showPasswords, togglePassword, copiedField, handleCopy)}
                   </div>
 
                   {hasProfiles && (
                     <div className="cred-section" style={{ marginTop: '1.25rem' }}>
-                      <h3>Seu Perfil Individual</h3>
+                      <h3>
+                        <User size={16} />
+                        Seu Perfil Individual
+                      </h3>
                       {myProfile ? (
                         <div className="cred-profile-card">
                           <div className="cred-profile-header">
@@ -274,12 +269,107 @@ function ServiceCredentials() {
                 </>
               )}
 
-              <div className="credentials-modal-footer">
+              <div className="credentials-inline-footer">
                 <p>Não compartilhe suas credenciais com ninguém.</p>
+              </div>
+
+              {group.email_code_enabled && (
+                <div className="verification-code-section">
+                  <div className="verification-code-header">
+                    <Mail size={20} />
+                    <div>
+                      <h3>Código de Verificação</h3>
+                      <p>Busque o código mais recente enviado para a conta compartilhada.</p>
+                    </div>
+                  </div>
+
+                  <button
+                    className="btn btn-primary fetch-code-btn"
+                    onClick={handleFetchCode}
+                    disabled={fetchingCode || (Date.now() - lastFetchTime < 15000)}
+                  >
+                    {fetchingCode ? (
+                      <>
+                        <Loader2 size={16} className="spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Mail size={16} />
+                        Buscar Código
+                      </>
+                    )}
+                  </button>
+
+                  {verificationCode && (
+                    <div className="verification-code-result">
+                      <div className="code-display">
+                        <code className="code-value">{verificationCode.code}</code>
+                        <button
+                          className="cred-action-btn"
+                          onClick={() => handleCopy(verificationCode.code, 'verification-code')}
+                          title="Copiar código"
+                        >
+                          {copiedField === 'verification-code' ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                      <div className="code-meta">
+                        {verificationCode.sender && (
+                          <span>Enviado por: <strong>{verificationCode.sender}</strong></span>
+                        )}
+                        {verificationCode.subject && (
+                          <span>Assunto: {verificationCode.subject}</span>
+                        )}
+                        <span className="code-timestamp">
+                          <Clock size={14} />
+                          Recebido: {new Date(verificationCode.received_at).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {codeMessage && (
+                    <div className="verification-code-empty">
+                      <AlertTriangle size={18} />
+                      <span>{codeMessage}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="credential-meta-grid">
+            <div className="credential-meta-item">
+              <Calendar size={18} />
+              <div>
+                <span>Ativada em</span>
+                <strong>{new Date(activeService.started_at || activeService.created_at).toLocaleDateString('pt-BR')}</strong>
+              </div>
+            </div>
+            <div className="credential-meta-item">
+              <RotateCcw size={18} />
+              <div>
+                <span>Renovação</span>
+                <strong>{activeService.expires_at ? new Date(activeService.expires_at).toLocaleDateString('pt-BR') : 'Mensal'}</strong>
               </div>
             </div>
           </div>
+
+          <div className="credential-actions-row">
+            <Link
+              to={`/dashboard/subscription/${activeService.id}`}
+              className="btn btn-sm btn-outline manage-sub-btn"
+            >
+              <Settings size={15} />
+              Gerenciar assinatura
+            </Link>
+          </div>
         </div>
+      </div>
+
+      {showChat && (
+        <GroupChat groupId={group.id} />
       )}
     </div>
   );

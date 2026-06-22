@@ -91,7 +91,40 @@
   border-color: rgba(16, 185, 129, 0.25);
 }
 
+.catalog-card-pinned {
+  border-color: var(--primary);
+  box-shadow: 0 2px 12px rgb(79 70 229 / 0.2);
+}
+
+.catalog-card-featured {
+  border-color: var(--action);
+}
+
+.catalog-badge-pin,
+.catalog-badge-star {
+  position: absolute;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.catalog-badge-pin {
+  right: 8px;
+  background: var(--primary);
+}
+
+.catalog-badge-star {
+  left: 8px;
+  background: var(--action);
+}
+
 .catalog-header {
+  position: relative;
   height: 90px;
   display: flex;
   align-items: center;

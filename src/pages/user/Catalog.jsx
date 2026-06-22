@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell, ArrowUpDown } from 'lucide-react';
+import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell, ArrowUpDown, Pin, Star } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
@@ -115,9 +115,15 @@ function Catalog() {
     const allGroups = [...(selectedService?.groups || []), ...extraGroups];
     const hasNoOwner = allGroups.some(g => !g.owner);
     if (!hasNoOwner || adminUser) return;
-    supabase.from('users').select('id, name, avatar_url, role').eq('role', 'admin').limit(1).single().then(({ data }) => {
+    const fetchAdmin = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, avatar_url, role')
+        .limit(1)
+        .maybeSingle();
       if (data) setAdminUser(data);
-    });
+    };
+    fetchAdmin();
   }, [extraGroups, selectedService, adminUser]);
 
   const getActiveMembers = (group) =>
@@ -211,6 +217,14 @@ function Catalog() {
         return false;
       });
     }
+
+    result.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return 0;
+    });
 
     return result;
   }, [availableServices, selectedCategory, search]);
@@ -497,7 +511,7 @@ function Catalog() {
 
             return (
               <div
-                className={`catalog-card ${subscribed ? 'subscribed' : ''}`}
+                className={`catalog-card ${subscribed ? 'subscribed' : ''} ${service.pinned ? 'catalog-card-pinned' : ''} ${service.featured ? 'catalog-card-featured' : ''}`}
                 key={service.id}
                 style={{ animationDelay: `${index * 0.06}s` }}
               >
@@ -506,6 +520,16 @@ function Catalog() {
                     <img src={service.icon_url} alt={service.name} className="catalog-logo" />
                   ) : (
                     <div className="catalog-icon-text">{service.icon || service.name[0]}</div>
+                  )}
+                  {service.pinned && (
+                    <div className="catalog-badge-pin" title="Fixado no topo">
+                      <Pin size={12} />
+                    </div>
+                  )}
+                  {service.featured && (
+                    <div className="catalog-badge-star" title="Destaque">
+                      <Star size={12} />
+                    </div>
                   )}
                 </div>
                 <div className="catalog-body">

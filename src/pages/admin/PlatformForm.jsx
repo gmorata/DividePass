@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Check, ImageIcon, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Check, ImageIcon, Upload, Pin, Star } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { optimizeImage } from '../../lib/imageOptimizer';
 import './Platforms.css';
@@ -36,9 +36,12 @@ function PlatformForm() {
     color: '#4F46E5',
     category: 'streaming',
     description: '',
+    official_url: '',
     official_price: '',
     max_group_size: 4,
     status: 'active',
+    featured: false,
+    pinned: false,
   });
 
   useEffect(() => {
@@ -66,9 +69,12 @@ function PlatformForm() {
         color: data.color || '#4F46E5',
         category: data.category || 'streaming',
         description: data.description || '',
+        official_url: data.official_url || '',
         official_price: data.official_price || '',
         max_group_size: data.max_group_size || 4,
         status: data.status || 'active',
+        featured: !!data.featured,
+        pinned: !!data.pinned,
       });
       setIconPreview(data.icon_url || '');
       setLoading(false);
@@ -126,10 +132,13 @@ function PlatformForm() {
         color: formData.color,
         category: formData.category,
         description: formData.description || null,
+        official_url: formData.official_url || null,
         icon_url: iconUrl || null,
         official_price: formData.official_price ? parseFloat(formData.official_price) : null,
         max_group_size: parseInt(formData.max_group_size, 10),
         status: formData.status,
+        featured: formData.featured,
+        pinned: formData.pinned,
       };
 
       if (isEditing) {
@@ -279,6 +288,48 @@ function PlatformForm() {
               placeholder="Plano Premium Ultra HD"
               rows={3}
             />
+          </div>
+
+          <div className="form-group">
+            <label>URL do site oficial</label>
+            <input
+              type="url"
+              value={formData.official_url}
+              onChange={e => setFormData({ ...formData, official_url: e.target.value })}
+              placeholder="https://www.netflix.com"
+            />
+            <small className="field-hint">Link exibido na página de credenciais do membro</small>
+          </div>
+
+          <div className="form-row-2">
+            <label className="toggle-option">
+              <input
+                type="checkbox"
+                checked={formData.pinned}
+                onChange={e => setFormData({ ...formData, pinned: e.target.checked })}
+              />
+              <div className="toggle-content">
+                <Pin size={16} />
+                <div>
+                  <strong>Fixar no topo</strong>
+                  <span>Aparece sempre no início do catálogo</span>
+                </div>
+              </div>
+            </label>
+            <label className="toggle-option">
+              <input
+                type="checkbox"
+                checked={formData.featured}
+                onChange={e => setFormData({ ...formData, featured: e.target.checked })}
+              />
+              <div className="toggle-content">
+                <Star size={16} />
+                <div>
+                  <strong>Destaque</strong>
+                  <span>Exibe selo de destaque no catálogo</span>
+                </div>
+              </div>
+            </label>
           </div>
         </section>
 
