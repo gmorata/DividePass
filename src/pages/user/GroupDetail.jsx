@@ -39,18 +39,33 @@ function GroupDetail() {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error: err } = await supabase
-        .from('groups')
-        .select(`
-          *,
-          service:service_id (*),
-          members:group_members (*, user:user_id (id, name, avatar_url, created_at)),
-          owner:owner_id (id, name, avatar_url, created_at, email)
-        `)
-        .or(`slug.eq.${groupSlug},id.eq.${groupSlug}`)
-        .single();
+      const QUERY = `
+        *,
+        service:service_id (*),
+        members:group_members (*, user:user_id (id, name, avatar_url, created_at)),
+        owner:owner_id (id, name, avatar_url, created_at, email)
+      `;
 
-      if (err || !data) {
+      let data = null;
+
+      const { data: bySlug } = await supabase
+        .from('groups')
+        .select(QUERY)
+        .eq('slug', groupSlug)
+        .maybeSingle();
+
+      if (bySlug) {
+        data = bySlug;
+      } else {
+        const { data: byId } = await supabase
+          .from('groups')
+          .select(QUERY)
+          .eq('id', groupSlug)
+          .maybeSingle();
+        data = byId;
+      }
+
+      if (!data) {
         setError('Grupo não encontrado.');
         setLoading(false);
         return;
