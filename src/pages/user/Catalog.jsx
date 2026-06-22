@@ -360,10 +360,10 @@ function Catalog() {
                     </button>
                   ) : (
                     <Link
-                      to={`/dashboard/checkout/${group.slug || group.name || group.id}`}
+                      to={`/dashboard/groups/${group.slug || group.id}`}
                       className="btn btn-primary btn-full btn-card-cta"
                     >
-                      Entrar no Grupo
+                      Ver Detalhes
                     </Link>
                   )}
                 </div>
