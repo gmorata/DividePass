@@ -63,6 +63,7 @@ function Catalog() {
   const [interestMsg, setInterestMsg] = useState('');
   const [interestSent, setInterestSent] = useState(false);
   const [extraGroups, setExtraGroups] = useState([]);
+  const [adminUser, setAdminUser] = useState(null);
 
   const availableServices = getAvailableServices();
   const selectedService = serviceId
@@ -109,6 +110,15 @@ function Catalog() {
     fetchGroups();
     return () => { cancelled = true; };
   }, [selectedService, serviceId, availableServices]);
+
+  useEffect(() => {
+    const allGroups = [...(selectedService?.groups || []), ...extraGroups];
+    const hasNoOwner = allGroups.some(g => !g.owner);
+    if (!hasNoOwner || adminUser) return;
+    supabase.from('users').select('id, name, avatar_url, role').eq('role', 'admin').limit(1).single().then(({ data }) => {
+      if (data) setAdminUser(data);
+    });
+  }, [extraGroups, selectedService, adminUser]);
 
   const getActiveMembers = (group) =>
     group.members?.filter(m => m.status === 'active').length || 0;
@@ -364,12 +374,22 @@ function Catalog() {
                       <span>Criado por: <strong>{group.owner.role === 'admin' ? 'DividePass' : (group.owner.name || 'Admin')}</strong></span>
                       {group.owner.role === 'admin' && <span className="group-card-official-seal">Oficial</span>}
                     </Link>
-                  ) : (
-                    <Link to="/dashboard/profile" className="group-card-creator official">
-                      <div className="group-card-creator-avatar-placeholder">DP</div>
+                  ) : adminUser ? (
+                    <Link to={`/dashboard/user/${adminUser.id}`} className="group-card-creator official">
+                      {adminUser.avatar_url ? (
+                        <img src={adminUser.avatar_url} alt="" className="group-card-creator-avatar" />
+                      ) : (
+                        <div className="group-card-creator-avatar-placeholder">DP</div>
+                      )}
                       <span>Criado por: <strong>DividePass</strong></span>
                       <span className="group-card-official-seal">Oficial</span>
                     </Link>
+                  ) : (
+                    <div className="group-card-creator official">
+                      <div className="group-card-creator-avatar-placeholder">DP</div>
+                      <span>Criado por: <strong>DividePass</strong></span>
+                      <span className="group-card-official-seal">Oficial</span>
+                    </div>
                   )}
                 </div>
 
