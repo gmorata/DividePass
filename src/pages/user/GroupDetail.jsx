@@ -32,7 +32,6 @@ function GroupDetail() {
   const [openSections, setOpenSections] = useState({
     about: true,
     loyalty: false,
-    admin: true,
     members: true,
     faq: false,
   });
@@ -268,45 +267,6 @@ function GroupDetail() {
         )}
       </div>
 
-      {/* Admin Section */}
-      {owner && (
-        <div className="gd-section">
-          <button className="gd-section-header" onClick={() => toggleSection('admin')}>
-            <h2>Administrador</h2>
-            {openSections.admin ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
-          {openSections.admin && (
-            <div className="gd-section-body">
-              <div className="gd-admin-profile">
-                <Link to={`/dashboard/user/${owner.id}`} className="gd-admin-avatar-link">
-                  {owner.avatar_url ? (
-                    <img src={owner.avatar_url} alt={owner.name} className="gd-admin-avatar" />
-                  ) : (
-                    <div className="gd-admin-avatar-placeholder">
-                      {(owner.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                </Link>
-                <Link to={`/dashboard/user/${owner.id}`} className="gd-admin-name">
-                  {owner.name || 'Administrador'}
-                </Link>
-                <div className="gd-admin-meta">
-                  <div className="gd-admin-meta-item">
-                    <span className="gd-admin-meta-label">Selos conquistados</span>
-                    <div className="gd-admin-badges">
-                      <span className="gd-admin-badge" title="Fundador">🚀</span>
-                      {owner.created_at && getMemberSince(owner.created_at).includes('meses') && (
-                        <span className="gd-admin-badge" title="Membro há tempo">💎</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Members Section */}
       <div className="gd-section">
         <button className="gd-section-header" onClick={() => toggleSection('members')}>
@@ -338,6 +298,23 @@ function GroupDetail() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhum membro ainda.</p>
               )}
             </div>
+
+            {/* Criado por */}
+            {owner && (
+              <Link to={`/dashboard/user/${owner.id}`} className="gd-created-by">
+                <span className="gd-created-by-label">Criado por:</span>
+                <div className="gd-created-by-profile">
+                  {owner.avatar_url ? (
+                    <img src={owner.avatar_url} alt={owner.name} className="gd-created-by-avatar" />
+                  ) : (
+                    <div className="gd-created-by-avatar-placeholder">
+                      {(owner.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="gd-created-by-name">{owner.name || 'Administrador'}</span>
+                </div>
+              </Link>
+            )}
           </div>
         )}
       </div>
