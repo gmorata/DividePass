@@ -93,11 +93,11 @@ export function useAppData() {
             service:service_id (*),
             members:group_members (*),
             credential:group_credentials (*),
-            owner:owner_id (id, name, email)
+            owner:owner_id (id, name, email, avatar_url)
           `).in('status', ['open', 'forming']),
           supabase.from('user_subscriptions').select(`
             *,
-            group:group_id (*, credential:group_credentials (*), profiles:group_profiles(*), owner:owner_id (id, name)),
+            group:group_id (*, credential:group_credentials (*), profiles:group_profiles(*), owner:owner_id (id, name, avatar_url)),
             service:service_id (*)
           `).eq('user_id', user.id).eq('status', 'active'),
           supabase.from('announcements').select('*').eq('is_active', true).or(`target_user_id.is.null,target_user_id.eq.${user.id}`).order('created_at', { ascending: false })

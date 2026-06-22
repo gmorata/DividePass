@@ -100,7 +100,7 @@ function Catalog() {
           service:service_id (*),
           members:group_members (*),
           credential:group_credentials (*),
-          owner:owner_id (id, name, email)
+          owner:owner_id (id, name, email, avatar_url)
         `)
         .eq('service_id', selectedService.id)
         .in('status', ['open', 'forming']);
@@ -351,6 +351,19 @@ function Catalog() {
                       <small className={cycleInfo.multi ? 'price-cycle-multi' : ''}>{cycleInfo.label}</small>
                     </span>
                   </div>
+
+                  {group.owner && (
+                    <Link to={`/dashboard/user/${group.owner.id}`} className="group-card-creator">
+                      {group.owner.avatar_url ? (
+                        <img src={group.owner.avatar_url} alt="" className="group-card-creator-avatar" />
+                      ) : (
+                        <div className="group-card-creator-avatar-placeholder">
+                          {(group.owner.name || 'U')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span>Criado por: <strong>{group.owner.name || 'Admin'}</strong></span>
+                    </Link>
+                  )}
                 </div>
 
                 <div className="group-card-footer">
