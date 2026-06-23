@@ -59,3 +59,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/fetch-email-code/deno.json"
 entrypoint = "./functions/fetch-email-code/index.ts"
+
+[functions.receive-email-code]
+enabled = true
+verify_jwt = false
+import_map = "./functions/receive-email-code/deno.json"
+entrypoint = "./functions/receive-email-code/index.ts"

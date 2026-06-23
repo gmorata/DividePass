@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Eye,
@@ -17,7 +17,8 @@ import {
   ExternalLink,
   Settings,
   User,
-  MessageCircle
+  MessageCircle,
+  Wifi
 } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -40,11 +41,14 @@ function ServiceCredentials() {
   const [fetchingCode, setFetchingCode] = useState(false);
   const [codeMessage, setCodeMessage] = useState('');
   const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [webhookListening, setWebhookListening] = useState(false);
 
   const activeServices = getActiveServices();
   const activeService = activeServices.find(item => item.service.id === serviceId || item.service.slug === serviceId);
   const service = streamingServices.find(s => s.id === serviceId || s.slug === serviceId);
   const isSubscribed = isSubscribedToService(serviceId);
+
+  const isWebhook = activeService?.group?.email_code_method === 'webhook';
 
   const togglePassword = (index) => {
     setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
@@ -55,6 +59,70 @@ function ServiceCredentials() {
     setCopiedField(key);
     setTimeout(() => setCopiedField(null), 2000);
   };
+
+  const fetchLatestPin = useCallback(async () => {
+    if (!activeService?.group?.id) return;
+    try {
+      const { data } = await supabase
+        .from('verification_pins')
+        .select('code, source_email, created_at')
+        .eq('group_id', activeService.group.id)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setVerificationCode({
+          code: data.code,
+          sender: data.source_email || '',
+          subject: '',
+          received_at: data.created_at,
+        });
+        setCodeMessage('');
+      }
+    } catch (err) {
+      // silent
+    }
+  }, [activeService?.group?.id]);
+
+  useEffect(() => {
+    if (!isWebhook || !activeService?.group?.id) return;
+
+    fetchLatestPin();
+    setWebhookListening(true);
+
+    const channel = supabase
+      .channel(`verification-pins-${activeService.group.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'verification_pins',
+          filter: `group_id=eq.${activeService.group.id}`,
+        },
+        (payload) => {
+          const pin = payload.new;
+          if (pin && !pin.used && new Date(pin.expires_at) > new Date()) {
+            setVerificationCode({
+              code: pin.code,
+              sender: pin.source_email || '',
+              subject: '',
+              received_at: pin.created_at,
+            });
+            setCodeMessage('');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      setWebhookListening(false);
+    };
+  }, [isWebhook, activeService?.group?.id, fetchLatestPin]);
 
   const handleFetchCode = async () => {
     if (!activeService?.group?.id) return;
@@ -285,30 +353,45 @@ function ServiceCredentials() {
               {group.email_code_enabled && (
                 <div className="verification-code-section">
                   <div className="verification-code-header">
-                    <Mail size={20} />
+                    {isWebhook ? <Wifi size={20} /> : <Mail size={20} />}
                     <div>
                       <h3>Código de Verificação</h3>
-                      <p>Busque o código mais recente enviado para a conta compartilhada.</p>
+                      {isWebhook ? (
+                        <p>O código será exibido automaticamente quando o serviço enviar o email.</p>
+                      ) : (
+                        <p>Busque o código mais recente enviado para a conta compartilhada.</p>
+                      )}
                     </div>
                   </div>
 
-                  <button
-                    className="btn btn-primary fetch-code-btn"
-                    onClick={handleFetchCode}
-                    disabled={fetchingCode || (Date.now() - lastFetchTime < 15000)}
-                  >
-                    {fetchingCode ? (
-                      <>
-                        <Loader2 size={16} className="spin" />
-                        Buscando...
-                      </>
-                    ) : (
-                      <>
-                        <Mail size={16} />
-                        Buscar Código
-                      </>
-                    )}
-                  </button>
+                  {isWebhook ? (
+                    <div className="webhook-status">
+                      {webhookListening && !verificationCode && (
+                        <div className="webhook-listening">
+                          <Loader2 size={16} className="spin" />
+                          <span>Aguardando código...</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn-primary fetch-code-btn"
+                      onClick={handleFetchCode}
+                      disabled={fetchingCode || (Date.now() - lastFetchTime < 15000)}
+                    >
+                      {fetchingCode ? (
+                        <>
+                          <Loader2 size={16} className="spin" />
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <Mail size={16} />
+                          Buscar Código
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {verificationCode && (
                     <div className="verification-code-result">
@@ -342,6 +425,17 @@ function ServiceCredentials() {
                       <AlertTriangle size={18} />
                       <span>{codeMessage}</span>
                     </div>
+                  )}
+
+                  {isWebhook && verificationCode && (
+                    <button
+                      className="btn btn-outline fetch-code-btn"
+                      onClick={() => { setVerificationCode(null); fetchLatestPin(); }}
+                      style={{ marginTop: '0.75rem' }}
+                    >
+                      <RotateCcw size={16} />
+                      Verificar novamente
+                    </button>
                   )}
                 </div>
               )}

@@ -361,17 +361,22 @@ export default {
       ];
 
       // Connect to IMAP with timeout
-      const conn = await Promise.race([
-        Deno.connectTls({
-          hostname: group.email_imap_server,
-          port: imapPort,
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`IMAP connection timeout (10s) to ${group.email_imap_server}:${imapPort}`)), 10000)
-        ),
-      ]);
+      let conn: Deno.TlsConn;
+      try {
+        conn = await Promise.race([
+          Deno.connectTls({
+            hostname: group.email_imap_server,
+            port: imapPort,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout ao conectar em ${group.email_imap_server}:${imapPort}. Verifique se o servidor e porta estão corretos.`)), 15000)
+          ),
+        ]);
+      } catch (e) {
+        throw new Error(`Falha na conexão TLS com ${group.email_imap_server}:${imapPort}: ${e.message}`);
+      }
 
-      console.log(`Connecting to IMAP: ${group.email_imap_server}:${imapPort} as ${group.email_imap_user}`);
+      console.log(`Connected to IMAP: ${group.email_imap_server}:${imapPort} as ${group.email_imap_user}`);
       const client = new ImapClient(conn);
 
       try {
@@ -475,8 +480,17 @@ export default {
       console.error("fetch-email-code error:", error);
       console.error("Error type:", error.constructor?.name);
       console.error("Error stack:", error.stack);
+      const msg = error.message || "Erro interno ao buscar código";
+      let hint = "";
+      if (msg.includes("LOGIN failed")) {
+        hint = " Credenciais IMAP inválidas. Se usa 2FA no Zoho, gere uma Senha de App em Settings > Security > App Passwords.";
+      } else if (msg.includes("timeout") || msg.includes("Timeout")) {
+        hint = " Servidor IMAP inacessível. Verifique o servidor e porta.";
+      } else if (msg.includes("conexão") || msg.includes("connection") || msg.includes("Connection")) {
+        hint = " Não foi possível conectar ao servidor IMAP. Verifique servidor, porta e firewall.";
+      }
       return new Response(
-        JSON.stringify({ error: error.message || "Erro interno ao buscar código", type: error.constructor?.name }),
+        JSON.stringify({ error: msg + hint, type: error.constructor?.name }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

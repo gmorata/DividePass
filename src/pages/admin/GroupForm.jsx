@@ -56,7 +56,9 @@ function GroupForm() {
   const [members, setMembers] = useState([]);
 
   const [emailCodeEnabled, setEmailCodeEnabled] = useState(false);
+  const [emailCodeMethod, setEmailCodeMethod] = useState('imap');
   const [emailAddress, setEmailAddress] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState('');
   const [emailImapServer, setEmailImapServer] = useState('');
   const [emailImapPort, setEmailImapPort] = useState(993);
   const [emailImapUser, setEmailImapUser] = useState('');
@@ -234,7 +236,9 @@ function GroupForm() {
 
           if (group) {
             setEmailCodeEnabled(group.email_code_enabled || false);
+            setEmailCodeMethod(group.email_code_method || 'imap');
             setEmailAddress(group.email_address || '');
+            setVerificationEmail(group.verification_email || '');
             setEmailImapServer(group.email_imap_server || '');
             setEmailImapPort(group.email_imap_port || 993);
             setEmailImapUser(group.email_imap_user || '');
@@ -308,15 +312,17 @@ function GroupForm() {
         status: formData.status,
         owner_id: user?.id || null,
         email_code_enabled: emailCodeEnabled,
-        email_address: emailCodeEnabled ? emailAddress : null,
-        email_imap_server: emailCodeEnabled ? emailImapServer : null,
-        email_imap_port: emailCodeEnabled ? emailImapPort : 993,
-        email_imap_user: emailCodeEnabled ? emailImapUser : null,
-        email_imap_password: emailCodeEnabled ? emailImapPassword : null,
-        email_allowed_senders: emailCodeEnabled
+        email_code_method: emailCodeEnabled ? emailCodeMethod : null,
+        email_address: emailCodeEnabled && emailCodeMethod === 'imap' ? emailAddress : null,
+        verification_email: emailCodeEnabled && emailCodeMethod === 'webhook' ? verificationEmail : null,
+        email_imap_server: emailCodeEnabled && emailCodeMethod === 'imap' ? emailImapServer : null,
+        email_imap_port: emailCodeEnabled && emailCodeMethod === 'imap' ? emailImapPort : 993,
+        email_imap_user: emailCodeEnabled && emailCodeMethod === 'imap' ? emailImapUser : null,
+        email_imap_password: emailCodeEnabled && emailCodeMethod === 'imap' ? emailImapPassword : null,
+        email_allowed_senders: emailCodeEnabled && emailCodeMethod === 'imap'
           ? emailAllowedSenders.split('\n').map(s => s.trim()).filter(Boolean)
           : [],
-        email_blocked_subjects: emailCodeEnabled
+        email_blocked_subjects: emailCodeEnabled && emailCodeMethod === 'imap'
           ? emailBlockedSubjects.split('\n').map(s => s.trim()).filter(Boolean)
           : [],
       };
@@ -754,83 +760,147 @@ function GroupForm() {
 
           {emailCodeEnabled && (
             <div style={{ marginTop: '1.25rem' }}>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>E-mail da conta</label>
-                  <input
-                    value={emailAddress}
-                    onChange={e => setEmailAddress(e.target.value)}
-                    placeholder="conta@plataforma.com"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Servidor IMAP</label>
-                  <input
-                    value={emailImapServer}
-                    onChange={e => setEmailImapServer(e.target.value)}
-                    placeholder="imap.zoho.com"
-                  />
-                </div>
-              </div>
-
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Usuário IMAP</label>
-                  <input
-                    value={emailImapUser}
-                    onChange={e => setEmailImapUser(e.target.value)}
-                    placeholder="conta@plataforma.com"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Senha IMAP / App Password</label>
-                  <input
-                    type="text"
-                    value={emailImapPassword}
-                    onChange={e => setEmailImapPassword(e.target.value)}
-                    placeholder="Senha ou App Password"
-                  />
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label style={{ marginBottom: '0.5rem', display: 'block' }}>Método de recebimento</label>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="emailCodeMethod"
+                      value="webhook"
+                      checked={emailCodeMethod === 'webhook'}
+                      onChange={() => setEmailCodeMethod('webhook')}
+                    />
+                    <strong>Webhook (API_URL)</strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>- Gratuito, recomendado</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="emailCodeMethod"
+                      value="imap"
+                      checked={emailCodeMethod === 'imap'}
+                      onChange={() => setEmailCodeMethod('imap')}
+                    />
+                    <strong>IMAP</strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>- Requer conta de e-mail</span>
+                  </label>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Porta IMAP</label>
-                <input
-                  type="number"
-                  value={emailImapPort}
-                  onChange={e => setEmailImapPort(parseInt(e.target.value, 10) || 993)}
-                  placeholder="993"
-                  style={{ maxWidth: '120px' }}
-                />
-              </div>
+              {emailCodeMethod === 'webhook' ? (
+                <div>
+                  <div className="form-group">
+                    <label>Endereço de verificação</label>
+                    <input
+                      value={verificationEmail}
+                      onChange={e => setVerificationEmail(e.target.value)}
+                      placeholder={`verify-${formData.slug || 'grupo'}@dividepass.com`}
+                    />
+                    <p className="section-desc" style={{ marginTop: '0.35rem' }}>
+                      Configure o serviço de streaming para enviar emails de verificação para este endereço.
+                      O Cloudflare Worker irá capturar e processar automaticamente.
+                    </p>
+                  </div>
 
-              <div className="form-group">
-                <label>Remetentes permitidos (um por linha)</label>
-                <p className="section-desc" style={{ marginBottom: '0.5rem' }}>
-                  Apenas e-mails destes remetentes serão processados. Se vazio, todos são aceitos.
-                </p>
-                <textarea
-                  rows={3}
-                  value={emailAllowedSenders}
-                  onChange={e => setEmailAllowedSenders(e.target.value)}
-                  placeholder={"netflix.com\nno-reply@netflix.com\ndisneyplus.com"}
-                  style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                />
-              </div>
+                  {formData.slug && (
+                    <div style={{
+                      background: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem 1rem',
+                      fontSize: '0.85rem',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}>
+                      <Mail size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <span>Sugestão: <code style={{ color: 'var(--secondary)' }}>verify-{formData.slug}@dividepass.com</code></span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>E-mail da conta</label>
+                      <input
+                        value={emailAddress}
+                        onChange={e => setEmailAddress(e.target.value)}
+                        placeholder="conta@plataforma.com"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Servidor IMAP</label>
+                      <input
+                        value={emailImapServer}
+                        onChange={e => setEmailImapServer(e.target.value)}
+                        placeholder="imap.zoho.com"
+                      />
+                    </div>
+                  </div>
 
-              <div className="form-group">
-                <label>Assuntos bloqueados (um por linha)</label>
-                <p className="section-desc" style={{ marginBottom: '0.5rem' }}>
-                  E-mails com assuntos contendo estes termos serão ignorados.
-                </p>
-                <textarea
-                  rows={3}
-                  value={emailBlockedSubjects}
-                  onChange={e => setEmailBlockedSubjects(e.target.value)}
-                  placeholder={"password\nrecuperação\nredefinição\nsegurança"}
-                  style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                />
-              </div>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>Usuário IMAP</label>
+                      <input
+                        value={emailImapUser}
+                        onChange={e => setEmailImapUser(e.target.value)}
+                        placeholder="conta@plataforma.com"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Senha IMAP / App Password</label>
+                      <input
+                        type="text"
+                        value={emailImapPassword}
+                        onChange={e => setEmailImapPassword(e.target.value)}
+                        placeholder="Senha ou App Password"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Porta IMAP</label>
+                    <input
+                      type="number"
+                      value={emailImapPort}
+                      onChange={e => setEmailImapPort(parseInt(e.target.value, 10) || 993)}
+                      placeholder="993"
+                      style={{ maxWidth: '120px' }}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Remetentes permitidos (um por linha)</label>
+                    <p className="section-desc" style={{ marginBottom: '0.5rem' }}>
+                      Apenas e-mails destes remetentes serão processados. Se vazio, todos são aceitos.
+                    </p>
+                    <textarea
+                      rows={3}
+                      value={emailAllowedSenders}
+                      onChange={e => setEmailAllowedSenders(e.target.value)}
+                      placeholder={"netflix.com\nno-reply@netflix.com\ndisneyplus.com"}
+                      style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Assuntos bloqueados (um por linha)</label>
+                    <p className="section-desc" style={{ marginBottom: '0.5rem' }}>
+                      E-mails com assuntos contendo estes termos serão ignorados.
+                    </p>
+                    <textarea
+                      rows={3}
+                      value={emailBlockedSubjects}
+                      onChange={e => setEmailBlockedSubjects(e.target.value)}
+                      placeholder={"password\nrecuperação\nredefinição\nsegurança"}
+                      style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>
