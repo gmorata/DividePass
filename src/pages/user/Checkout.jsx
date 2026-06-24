@@ -183,12 +183,17 @@ function Checkout() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Erro ao criar pagamento.');
+      console.log('[Checkout] Entrance response:', response.status, data);
+      if (!response.ok) {
+        const detail = data.details?.message || data.error || 'Erro ao criar pagamento.';
+        throw new Error(detail);
+      }
 
       if (data.init_point) window.location.href = data.init_point;
       else if (data.sandbox_init_point) window.location.href = data.sandbox_init_point;
       else throw new Error('Link de pagamento não disponível.');
     } catch (err) {
+      console.error('[Checkout] Entrance error:', err);
       setError(err.message);
       setProcessing(false);
     }
@@ -225,12 +230,17 @@ function Checkout() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Erro ao criar pagamento.');
+      console.log('[Checkout] Subscription response:', response.status, data);
+      if (!response.ok) {
+        const detail = data.details?.message || data.error || 'Erro ao criar pagamento.';
+        throw new Error(detail);
+      }
 
       if (data.init_point) window.location.href = data.init_point;
       else if (data.sandbox_init_point) window.location.href = data.sandbox_init_point;
       else throw new Error('Link de pagamento não disponível.');
     } catch (err) {
+      console.error('[Checkout] Subscription error:', err);
       setError(err.message);
       setProcessing(false);
     }
