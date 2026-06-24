@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Clock, CheckCircle, AlertCircle, Eye } from 'lucide-react';
+import { MessageSquare, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 function Support() {
@@ -10,19 +10,17 @@ function Support() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    loadTickets();
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('support_tickets')
+        .select('*, user:user_id (id, name, email), messages: support_messages (count)')
+        .order('created_at', { ascending: false });
+
+      setTickets(data || []);
+      setLoading(false);
+    })();
   }, []);
-
-  const loadTickets = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('support_tickets')
-      .select('*, user:user_id (id, name, email), messages: support_messages (count)')
-      .order('created_at', { ascending: false });
-
-    setTickets(data || []);
-    setLoading(false);
-  };
 
   const statusConfig = {
     open: { label: 'Aberto', icon: AlertCircle, color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },

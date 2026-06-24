@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Shield, Users, ChevronDown, ChevronUp, Star, Clock, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Shield, Users, ChevronDown, ChevronUp, Star, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import './GroupDetail.css';
@@ -45,7 +45,7 @@ function GroupDetail() {
         owner:owner_id (id, name, avatar_url, created_at, email, role)
       `;
 
-      let data = null;
+      let data;
 
       const { data: bySlug } = await supabase
         .from('groups')
@@ -101,17 +101,7 @@ function GroupDetail() {
   const maxMembers = group?.max_size || service?.max_group_size || 4;
   const spots = Math.max(0, maxMembers - activeMembers);
   const isFull = spots === 0;
-  const isOwner = user && owner && user.id === owner.id;
   const isMember = user && members.some(m => m.user?.id === user.id);
-
-  const getMemberSince = (date) => {
-    if (!date) return '';
-    const diff = Date.now() - new Date(date).getTime();
-    const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
-    if (months < 1) return 'Novo membro';
-    if (months === 1) return '1 mês na plataforma';
-    return `${months} meses na plataforma`;
-  };
 
   if (loading) {
     return (

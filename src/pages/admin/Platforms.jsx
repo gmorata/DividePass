@@ -11,26 +11,24 @@ function Platforms() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
-  const fetchPlatforms = async () => {
-    try {
-      setLoading(true);
-      const { data, error: supabaseError } = await supabase
-        .from('streaming_services')
-        .select('*')
-        .order('name');
-
-      if (supabaseError) throw supabaseError;
-      setPlatforms(data || []);
-      setError('');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchPlatforms();
+    (async () => {
+      try {
+        setLoading(true);
+        const { data, error: supabaseError } = await supabase
+          .from('streaming_services')
+          .select('*')
+          .order('name');
+
+        if (supabaseError) throw supabaseError;
+        setPlatforms(data || []);
+        setError('');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const filtered = platforms.filter(p =>

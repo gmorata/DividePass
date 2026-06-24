@@ -11,38 +11,36 @@ function InterestList() {
   const [expandedService, setExpandedService] = useState(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    (async () => {
+      try {
+        setLoading(true);
+        const { data, error: fetchError } = await supabase
+          .from('group_interest')
+          .select(`
+            *,
+            user:user_id (id, name, email, phone),
+            service:service_id (id, name, full_name, color, icon, icon_url)
+          `)
+          .order('created_at', { ascending: false });
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('group_interest')
-        .select(`
-          *,
-          user:user_id (id, name, email, phone),
-          service:service_id (id, name, full_name, color, icon, icon_url)
-        `)
-        .order('created_at', { ascending: false });
+        if (fetchError) throw fetchError;
 
-      if (fetchError) throw fetchError;
+        setEntries(data || []);
+        setError('');
 
-      setEntries(data || []);
-      setError('');
-
-      if (data?.length > 0) {
-        const serviceIds = [...new Set(data.map(e => e.service?.id).filter(Boolean))];
-        if (serviceIds.length > 0) {
-          setExpandedService(serviceIds[0]);
+        if (data?.length > 0) {
+          const serviceIds = [...new Set(data.map(e => e.service?.id).filter(Boolean))];
+          if (serviceIds.length > 0) {
+            setExpandedService(serviceIds[0]);
+          }
         }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+  }, []);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Check, ImageIcon, Upload, Pin, Star } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, ImageIcon, Upload, Pin, Star } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { optimizeImage } from '../../lib/imageOptimizer';
 import './Platforms.css';
@@ -23,7 +23,7 @@ function PlatformForm() {
   const navigate = useNavigate();
   const isEditing = !!platformId;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [iconFile, setIconFile] = useState(null);
@@ -46,7 +46,6 @@ function PlatformForm() {
 
   useEffect(() => {
     if (!isEditing) {
-      setLoading(false);
       return;
     }
 
@@ -170,8 +169,6 @@ function PlatformForm() {
       </div>
     );
   }
-
-  const selectedCat = CATEGORIES.find(c => c.value === formData.category);
 
   return (
     <div className="fade-in platform-form-page">

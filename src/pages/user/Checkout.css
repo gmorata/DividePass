@@ -597,3 +597,156 @@
     padding: 1.25rem;
   }
 }
+
+/* Payment Flow Steps */
+.payment-flow-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem 0;
+}
+
+.payment-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  opacity: 0.4;
+}
+
+.payment-step.active {
+  opacity: 1;
+}
+
+.payment-step.completed {
+  opacity: 1;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.payment-step.active .step-number {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.payment-step.completed .step-number {
+  border-color: #10B981;
+  background: #10B981;
+  color: white;
+}
+
+.payment-step span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.payment-step.active span {
+  color: var(--primary);
+}
+
+.payment-step-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border);
+  margin-bottom: 1.2rem;
+}
+
+.payment-step-line.completed {
+  background: #10B981;
+}
+
+/* Entrance Paid Badge */
+.entrance-paid-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.5rem;
+  color: #10B981;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* Deadline Warning */
+.deadline-warning {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.deadline-warning svg {
+  color: #EAB308;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.deadline-warning strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #EAB308;
+  margin-bottom: 0.25rem;
+}
+
+.deadline-warning p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Entrance Row */
+.entrance-row {
+  color: #EAB308;
+}
+
+.entrance-row strong {
+  color: #EAB308;
+}
+
+/* Access Blocked Card */
+.access-blocked-card {
+  background: var(--surface);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 1rem;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.access-blocked-card svg {
+  color: #EAB308;
+}
+
+.access-blocked-card h3 {
+  font-size: 1.25rem;
+  color: var(--secondary);
+  margin: 0;
+}
+
+.access-blocked-card p {
+  color: var(--text-muted);
+  max-width: 400px;
+}

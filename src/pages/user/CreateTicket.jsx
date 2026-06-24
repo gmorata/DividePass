@@ -16,7 +16,7 @@ function CreateTicket() {
     category: 'general',
     message: '',
   });
-  const { imageFile, imagePreview, handleImageChange, removeImage, uploadImage } = useSupportImageUpload();
+  const { imagePreview, handleImageChange, removeImage, uploadImage } = useSupportImageUpload();
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));

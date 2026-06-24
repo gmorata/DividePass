@@ -8,7 +8,6 @@ function Register() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get('ref');
-  const groupSlug = searchParams.get('group');
   const { signUp } = useAuth();
 
   const [name, setName] = useState('');

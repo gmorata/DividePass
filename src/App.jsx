@@ -26,6 +26,10 @@ import UserProfile from './pages/user/UserProfile';
 import GroupDetail from './pages/user/GroupDetail';
 import UserPublicProfile from './pages/user/UserPublicProfile';
 import SubscriptionManage from './pages/user/SubscriptionManage';
+import CreateGroup from './pages/user/CreateGroup';
+import ManageGroup from './pages/user/ManageGroup';
+import Wallet from './pages/user/Wallet';
+import MyGroups from './pages/user/MyGroups';
 
 // Admin Imports
 import AdminLayout from './pages/admin/AdminLayout';
@@ -42,6 +46,8 @@ import Support from './pages/admin/Support';
 import AdminTicketDetail from './pages/admin/AdminTicketDetail';
 import Announcements from './pages/admin/Announcements';
 import InterestList from './pages/admin/InterestList';
+import Settings from './pages/admin/Settings';
+import AdminWallets from './pages/admin/Wallets';
 
 import './App.css';
 
@@ -68,6 +74,10 @@ function App() {
               <Route path="credentials" element={<MyCredentials />} />
               <Route path="credentials/:serviceId" element={<ServiceCredentials />} />
               <Route path="billing" element={<Billing />} />
+              <Route path="wallet" element={<Wallet />} />
+              <Route path="my-groups" element={<MyGroups />} />
+              <Route path="my-groups/create" element={<CreateGroup />} />
+              <Route path="my-groups/:groupId/manage" element={<ManageGroup />} />
               <Route path="support" element={<UserSupport />} />
               <Route path="support/new" element={<CreateTicket />} />
               <Route path="support/:ticketId" element={<TicketDetail />} />
@@ -95,6 +105,8 @@ function App() {
             <Route path="support/:ticketId" element={<AdminTicketDetail />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="interest" element={<InterestList />} />
+            <Route path="wallets" element={<AdminWallets />} />
+            <Route path="settings" element={<Settings />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

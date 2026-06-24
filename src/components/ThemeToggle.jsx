@@ -1,24 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
-
-function getSystemTheme() {
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return 'dark';
-}
-
-function getStoredTheme() {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('dp-theme');
-  }
-  return null;
-}
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('dp-theme', theme);
-}
+import { getSystemTheme, getStoredTheme, applyTheme } from '../lib/themeUtils';
 
 export default function ThemeToggle({ className = '' }) {
   const [theme, setTheme] = useState(() => {
@@ -56,5 +38,3 @@ export default function ThemeToggle({ className = '' }) {
     </button>
   );
 }
-
-export { applyTheme, getSystemTheme, getStoredTheme };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Plus, Trash2, CheckCircle, X, Info, UserPlus, UserMinus } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Plus, Trash2, CheckCircle, X, Info, UserPlus, UserMinus, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import './GroupForm.css';
@@ -47,6 +47,8 @@ function GroupForm() {
     tags: '',
     verified: false,
     status: 'open',
+    custom_cycle_months: '',
+    custom_cycle_label: '',
   });
 
   const [loginEmail, setLoginEmail] = useState('');
@@ -68,14 +70,17 @@ function GroupForm() {
 
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [addingMember, setAddingMember] = useState(false);
+  const [settings, setSettings] = useState({});
 
   const priceSimulation = useMemo(() => {
     const price = parseFloat(formData.price_per_slot) || 0;
-    const gatewayFee = price * 0.0498;
-    const platformFee = price * 0.0395;
+    const gatewayRate = parseFloat(settings.gateway_fee_percent || '4.98') / 100;
+    const platformRate = parseFloat(settings.platform_fee_percent || '3.95') / 100;
+    const gatewayFee = price * gatewayRate;
+    const platformFee = price * platformRate;
     const net = price - gatewayFee - platformFee;
     return { price, gatewayFee, platformFee, net };
-  }, [formData.price_per_slot]);
+  }, [formData.price_per_slot, settings]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -225,6 +230,8 @@ function GroupForm() {
               tags: Array.isArray(group.tags) ? group.tags.join(', ') : '',
               verified: group.verified || false,
               status: group.status || 'open',
+              custom_cycle_months: group.custom_cycle_months || '',
+              custom_cycle_label: group.custom_cycle_label || '',
             });
           }
 
@@ -282,6 +289,14 @@ function GroupForm() {
     return () => { cancelled = true; };
   }, [groupId, isEditing, searchParams]);
 
+  useEffect(() => {
+    supabase.from('app_settings').select('key, value').then(({ data }) => {
+      const s = {};
+      data?.forEach(d => { s[d.key] = d.value; });
+      setSettings(s);
+    });
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -325,6 +340,8 @@ function GroupForm() {
         email_blocked_subjects: emailCodeEnabled && emailCodeMethod === 'imap'
           ? emailBlockedSubjects.split('\n').map(s => s.trim()).filter(Boolean)
           : [],
+        custom_cycle_months: formData.available_cycles.includes('custom') ? parseInt(formData.custom_cycle_months) || null : null,
+        custom_cycle_label: formData.available_cycles.includes('custom') ? formData.custom_cycle_label || null : null,
       };
 
       let groupIdResult = groupId;
@@ -487,11 +504,11 @@ function GroupForm() {
                   <strong>R$ {priceSimulation.price.toFixed(2)}</strong>
                 </div>
                 <div className="sim-row fee">
-                  <span>Taxa gateway (4,98%)</span>
+                  <span>Taxa gateway ({(parseFloat(settings.gateway_fee_percent || '4.98')).toFixed(2)}%)</span>
                   <span>- R$ {priceSimulation.gatewayFee.toFixed(2)}</span>
                 </div>
                 <div className="sim-row fee">
-                  <span>Taxa plataforma (3,95%)</span>
+                  <span>Taxa plataforma ({(parseFloat(settings.platform_fee_percent || '3.95')).toFixed(2)}%)</span>
                   <span>- R$ {priceSimulation.platformFee.toFixed(2)}</span>
                 </div>
                 <div className="sim-row total">
@@ -513,6 +530,7 @@ function GroupForm() {
                 { value: 'quarterly', label: 'Trimestral' },
                 { value: 'semiannual', label: 'Semestral' },
                 { value: 'annual', label: 'Anual' },
+                { value: 'custom', label: 'Personalizado' },
               ].map(opt => (
                 <label key={opt.value} className={`cycle-check ${formData.available_cycles.includes(opt.value) ? 'active' : ''}`}>
                   <input
@@ -524,6 +542,27 @@ function GroupForm() {
                 </label>
               ))}
             </div>
+
+            {formData.available_cycles.includes('custom') && (
+              <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+                <div className="form-group">
+                  <label>Meses do ciclo personalizado *</label>
+                  <input type="number" min="1" max="60"
+                    value={formData.custom_cycle_months || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, custom_cycle_months: parseInt(e.target.value) || '' }))}
+                    placeholder="Ex: 4"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Label do ciclo</label>
+                  <input type="text"
+                    value={formData.custom_cycle_label || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, custom_cycle_label: e.target.value }))}
+                    placeholder="Ex: 4 Meses"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-group">

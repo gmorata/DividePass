@@ -31,6 +31,9 @@ export default {
         );
       }
 
+      // ============================================
+      // STEP 1: Pagamento avulso (taxa de entrada) via "payment"
+      // ============================================
       if (topic === "payment") {
         const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${resourceId}`, {
           headers: { Authorization: `Bearer ${mpAccessToken}` },
@@ -49,7 +52,10 @@ export default {
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        const [group_id, user_id] = externalReference.split(":");
+        const parts = externalReference.split(":");
+        const group_id = parts[0];
+        const user_id = parts[1];
+        const paymentType = parts[2] || "entrance";
 
         if (!group_id || !user_id) {
           console.error("Invalid external_reference", externalReference);
@@ -59,16 +65,15 @@ export default {
         const amount = payment.transaction_amount || 0;
         const paidAt = payment.date_approved || new Date().toISOString();
 
-        // Só processa pagamentos aprovados
         if (payment.status !== "approved") {
           console.log(`Payment status: ${payment.status}. Ignoring.`);
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Busca o grupo para obter service_id, ciclo e valor REAL da assinatura
+        // Buscar grupo
         const { data: group, error: groupError } = await supabaseAdmin
           .from("groups")
-          .select("service_id, name, billing_cycle, price_per_slot, has_entrance_fee, entrance_fee, available_cycles")
+          .select("service_id, name, billing_cycle, price_per_slot, has_entrance_fee, entrance_fee, owner_id, is_official")
           .eq("id", group_id)
           .single();
 
@@ -77,85 +82,213 @@ export default {
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Busca assinatura existente para preservar ciclo e valor
-        const { data: existingSub } = await supabaseAdmin
-          .from("user_subscriptions")
-          .select("billing_cycle, amount")
-          .eq("user_id", user_id)
-          .eq("group_id", group_id)
-          .maybeSingle();
+        // Taxa de entrada paga
+        console.log(`Entrance fee paid for group ${group_id}, user ${user_id}`);
 
-        const cycle = existingSub?.billing_cycle || group.billing_cycle || "monthly";
+        const entranceDeadline = new Date();
+        entranceDeadline.setHours(entranceDeadline.getHours() + 12);
+
+        await supabaseAdmin
+          .from("group_members")
+          .update({
+            payment_status: "entrance_paid",
+            entrance_paid_at: paidAt,
+            entrance_payment_id: String(resourceId),
+            subscription_deadline: entranceDeadline.toISOString(),
+          })
+          .eq("group_id", group_id)
+          .eq("user_id", user_id);
+
+        // Registrar pagamento
+        await supabaseAdmin
+          .from("payments")
+          .insert({
+            user_id, group_id, amount,
+            method: payment.payment_method_id || "mercado_pago",
+            status: "paid",
+            transaction_code: String(resourceId),
+            paid_at: paidAt,
+            payment_type: "entrance",
+            notes: "Taxa de entrada - pagamento único",
+          });
+
+        // Credita wallet do dono
+        if (group.owner_id && !group.is_official) {
+          try {
+            const { data: settingsData } = await supabaseAdmin
+              .from("app_settings")
+              .select("key, value")
+              .in("key", ["gateway_fee_percent", "platform_fee_percent"]);
+
+            const settings: Record<string, string> = {};
+            settingsData?.forEach(s => { settings[s.key] = s.value; });
+
+            const gatewayRate = parseFloat(settings.gateway_fee_percent || "4.98") / 100;
+            const platformRate = parseFloat(settings.platform_fee_percent || "3.95") / 100;
+            const totalFees = gatewayRate + platformRate;
+            const ownerAmount = amount * (1 - totalFees);
+
+            await supabaseAdmin.rpc("credit_wallet", {
+              p_user_id: group.owner_id,
+              p_amount: ownerAmount,
+              p_description: `Taxa de entrada no grupo ${group.name}`,
+              p_reference_type: "entrance",
+              p_reference_id: null,
+            });
+          } catch (walletErr) {
+            console.error("Wallet credit error:", walletErr);
+          }
+        }
+      }
+
+      // ============================================
+      // STEP 2: Assinatura recorrente via "preapproval"
+      // ============================================
+      if (topic === "preapproval" || topic === "subscription_preapproval") {
+        const mpResponse = await fetch(`https://api.mercadopago.com/preapproval/${resourceId}`, {
+          headers: { Authorization: `Bearer ${mpAccessToken}` },
+        });
+
+        if (!mpResponse.ok) {
+          console.error("Failed to fetch preapproval from MP");
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        const preapproval = await mpResponse.json();
+        const externalReference = preapproval.external_reference;
+
+        if (!externalReference) {
+          console.error("Preapproval without external_reference");
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        const parts = externalReference.split(":");
+        const group_id = parts[0];
+        const user_id = parts[1];
+
+        if (!group_id || !user_id) {
+          console.error("Invalid external_reference", externalReference);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        console.log(`Preapproval status: ${preapproval.status} for group ${group_id}, user ${user_id}`);
+
+        // Só ativa quando status for "authorized"
+        if (preapproval.status !== "authorized") {
+          console.log(`Preapproval status ${preapproval.status}. Waiting for authorized.`);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        // Buscar grupo
+        const { data: group, error: groupError } = await supabaseAdmin
+          .from("groups")
+          .select("service_id, name, billing_cycle, price_per_slot, owner_id, is_official")
+          .eq("id", group_id)
+          .single();
+
+        if (groupError || !group) {
+          console.error("Group not found", groupError);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        const cycle = group.billing_cycle || "monthly";
         const cycleMonths =
           cycle === "quarterly" ? 3 :
           cycle === "semiannual" ? 6 :
           cycle === "annual" ? 12 : 1;
 
-        // O valor da assinatura é sempre o preço base × meses do ciclo
-        // NÃO inclui entrance_fee (que é cobrado apenas 1x)
-        const subscriptionAmount = group.price_per_slot * cycleMonths;
+        const subscriptionAmount = group.price_per_slot;
+        const paidAt = preapproval.last_date_approved || new Date().toISOString();
 
-        // Atualiza ou insere a assinatura do usuário
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + cycleMonths);
 
-        const { error: subError } = await supabaseAdmin
+        // Atualizar assinatura
+        await supabaseAdmin
           .from("user_subscriptions")
           .upsert({
-            user_id,
-            group_id,
+            user_id, group_id,
             service_id: group.service_id,
             billing_cycle: cycle,
             amount: subscriptionAmount,
             status: "active",
-            mercado_pago_status: "approved",
+            mercado_pago_status: "authorized",
+            mercado_pago_subscription_id: preapproval.id,
             external_reference: externalReference,
             started_at: new Date().toISOString(),
             expires_at: expiresAt.toISOString(),
           }, { onConflict: "user_id, group_id" });
 
-        if (subError) {
-          console.error("Error upserting subscription:", subError);
-        }
-
-        // Adiciona membro ao grupo
-        const { error: memberError } = await supabaseAdmin
+        // ACESSO LIBERADO
+        await supabaseAdmin
           .from("group_members")
-          .upsert({
-            group_id,
-            user_id,
+          .update({
             status: "active",
+            payment_status: "active",
             joined_at: new Date().toISOString(),
-          }, { onConflict: "group_id, user_id" });
+          })
+          .eq("group_id", group_id)
+          .eq("user_id", user_id);
 
-        if (memberError) {
-          console.error("Error adding group member:", memberError);
-        }
-
-        // Registra o pagamento
-        const entranceFeeAmount = group.has_entrance_fee ? Number(group.entrance_fee || 0) : 0;
-        const isEntrancePayment = entranceFeeAmount > 0 && amount > subscriptionAmount;
-
-        const { error: paymentError } = await supabaseAdmin
+        // Registrar pagamento
+        await supabaseAdmin
           .from("payments")
           .insert({
-            user_id,
-            amount,
-            method: payment.payment_method_id || "mercado_pago",
+            user_id, group_id,
+            amount: subscriptionAmount,
+            method: "mercado_pago_preapproval",
             status: "paid",
             transaction_code: String(resourceId),
             paid_at: paidAt,
-            notes: isEntrancePayment
-              ? JSON.stringify({ subscription: subscriptionAmount, entrance_fee: entranceFeeAmount })
-              : null,
+            payment_type: "subscription",
+            notes: `Assinatura recorrente ${cycle}`,
           });
 
-        if (paymentError) {
-          console.error("Error inserting payment:", paymentError);
+        // Credita wallet do dono
+        if (group.owner_id && !group.is_official) {
+          try {
+            const { data: memberUser } = await supabaseAdmin
+              .from("users")
+              .select("name")
+              .eq("id", user_id)
+              .maybeSingle();
+
+            const memberName = memberUser?.name || "Membro";
+
+            const { data: settingsData } = await supabaseAdmin
+              .from("app_settings")
+              .select("key, value")
+              .in("key", ["gateway_fee_percent", "platform_fee_percent"]);
+
+            const settings: Record<string, string> = {};
+            settingsData?.forEach(s => { settings[s.key] = s.value; });
+
+            const gatewayRate = parseFloat(settings.gateway_fee_percent || "4.98") / 100;
+            const platformRate = parseFloat(settings.platform_fee_percent || "3.95") / 100;
+            const totalFees = gatewayRate + platformRate;
+            const ownerAmount = subscriptionAmount * (1 - totalFees);
+
+            const { data: subData } = await supabaseAdmin
+              .from("user_subscriptions")
+              .select("id")
+              .eq("user_id", user_id)
+              .eq("group_id", group_id)
+              .maybeSingle();
+
+            await supabaseAdmin.rpc("credit_wallet", {
+              p_user_id: group.owner_id,
+              p_amount: ownerAmount,
+              p_description: `Assinatura de ${memberName} no grupo ${group.name}`,
+              p_reference_type: "subscription",
+              p_reference_id: subData?.id || null,
+            });
+          } catch (walletErr) {
+            console.error("Wallet credit error:", walletErr);
+          }
         }
 
-        // Marca fatura atual como paga
-        const { error: invoicePaidError } = await supabaseAdmin
+        // Fatura
+        await supabaseAdmin
           .from("invoices")
           .update({ status: "paid", paid_at: paidAt })
           .eq("user_id", user_id)
@@ -164,29 +297,19 @@ export default {
           .order("due_date", { ascending: true })
           .limit(1);
 
-        if (invoicePaidError) {
-          console.error("Error marking invoice as paid:", invoicePaidError);
-        }
-
-        // Cria próxima fatura para recorrência interna de acordo com o ciclo
         const nextDue = new Date();
         nextDue.setMonth(nextDue.getMonth() + cycleMonths);
 
-        const { error: nextInvoiceError } = await supabaseAdmin
+        await supabaseAdmin
           .from("invoices")
           .insert({
-            user_id,
-            group_id,
+            user_id, group_id,
             amount: subscriptionAmount,
             due_date: nextDue.toISOString().split("T")[0],
             status: "pending",
           });
 
-        if (nextInvoiceError) {
-          console.error("Error creating next invoice:", nextInvoiceError);
-        }
-
-        // Processa referral: marca como completo e dá bônus se mesmo grupo
+        // Referral
         try {
           const { data: referral } = await supabaseAdmin
             .from("referrals")
@@ -198,8 +321,7 @@ export default {
           if (referral) {
             const isSameGroup = referral.group_id === group_id;
             const bonusPoints = isSameGroup ? 5 : 0;
-            const currentPoints = referral.points || 0;
-            const totalPoints = currentPoints + 10 + bonusPoints;
+            const totalPoints = (referral.points || 0) + 10 + bonusPoints;
 
             await supabaseAdmin
               .from("referrals")
@@ -207,16 +329,13 @@ export default {
                 status: "completed",
                 points: totalPoints,
                 completed_at: new Date().toISOString(),
-                group_id: group_id
+                group_id,
               })
               .eq("id", referral.id);
           }
         } catch (refErr) {
-          console.error("Error processing referral:", refErr);
+          console.error("Referral error:", refErr);
         }
-      } else if (topic === "subscription_preapproval" || topic === "preapproval") {
-        // Mantido para compatibilidade com eventuais assinaturas antigas
-        console.log("Preapproval webhook ignored. Using Checkout Pro payments.");
       }
 
       return new Response(

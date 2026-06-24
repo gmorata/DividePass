@@ -72,8 +72,9 @@ function UserPublicProfile() {
 
   const getMemberSince = (date) => {
     if (!date) return '';
-    const diff = Date.now() - new Date(date).getTime();
-    const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
+    const created = new Date(date);
+    const now = new Date();
+    const months = (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
     if (months < 1) return 'Membro desde este mês';
     if (months === 1) return 'Membro há 1 mês';
     return `Membro há ${months} meses`;

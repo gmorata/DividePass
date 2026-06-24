@@ -65,3 +65,8 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/receive-email-code/deno.json"
 entrypoint = "./functions/receive-email-code/index.ts"
+
+[functions.check-entrance-deadline]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/check-entrance-deadline/index.ts"

@@ -47,6 +47,8 @@ function AdminLayout() {
           <Link onClick={closeMenu} to="/admin/credentials" className={`nav-item ${isActive('/admin/credentials')}`}>Credenciais/Senhas</Link>
           <Link onClick={closeMenu} to="/admin/support" className={`nav-item ${isActive('/admin/support')}`}>Suporte 🛎️</Link>
           <Link onClick={closeMenu} to="/admin/announcements" className={`nav-item ${isActive('/admin/announcements')}`}>Avisos 📢</Link>
+          <Link onClick={closeMenu} to="/admin/wallets" className={`nav-item ${isActive('/admin/wallets')}`}>Carteiras 💰</Link>
+          <Link onClick={closeMenu} to="/admin/settings" className={`nav-item ${isActive('/admin/settings')}`}>Configurações ⚙️</Link>
         </nav>
         <div className="admin-footer">
           <ThemeToggle className="sidebar-theme-toggle" />

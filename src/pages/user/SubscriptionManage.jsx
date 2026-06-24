@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -24,16 +24,13 @@ function SubscriptionManage() {
   const { streamingServices, getActiveServices } = useAppDataContext();
 
   const [cancelling, setCancelling] = useState(false);
-  const [subscription, setSubscription] = useState(null);
+  const [cancelledIds, setCancelledIds] = useState(new Set());
 
   const activeServices = getActiveServices();
-  const activeService = activeServices.find(s => s.id === subscriptionId);
-
-  useEffect(() => {
-    if (activeService) {
-      setSubscription(activeService);
-    }
-  }, [activeService]);
+  const baseSubscription = activeServices.find(s => s.id === subscriptionId) || null;
+  const subscription = baseSubscription && cancelledIds.has(baseSubscription.id)
+    ? { ...baseSubscription, status: 'cancelled' }
+    : baseSubscription;
 
   const handleCancel = async () => {
     if (!window.confirm('Tem certeza que deseja cancelar esta assinatura? Você perderá o acesso imediatamente.')) {
@@ -57,7 +54,7 @@ function SubscriptionManage() {
 
       if (subError) throw subError;
 
-      setSubscription(prev => ({ ...prev, status: 'cancelled' }));
+      setCancelledIds(prev => new Set([...prev, subscription.id]));
     } catch (err) {
       alert('Erro ao cancelar assinatura: ' + err.message);
     } finally {
@@ -146,9 +143,12 @@ function SubscriptionManage() {
               <Shield size={18} />
               <div>
                 <span>Ciclo de cobrança</span>
-                <strong>{
-                  { monthly: 'Mensal', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual' }[subscription.billing_cycle] || 'Mensal'
-                }</strong>
+                <strong>
+                  {subscription.billing_cycle === 'custom'
+                    ? (subscription.group?.custom_cycle_label || `${subscription.custom_cycle_months || '?'} meses`)
+                    : ({ monthly: 'Mensal', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual' }[subscription.billing_cycle] || 'Mensal')
+                  }
+                </strong>
               </div>
             </div>
           </div>

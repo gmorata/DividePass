@@ -18,7 +18,8 @@ import {
   Settings,
   User,
   MessageCircle,
-  Wifi
+  Wifi,
+  CreditCard
 } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -41,7 +42,8 @@ function ServiceCredentials() {
   const [fetchingCode, setFetchingCode] = useState(false);
   const [codeMessage, setCodeMessage] = useState('');
   const [lastFetchTime, setLastFetchTime] = useState(0);
-  const [webhookListening, setWebhookListening] = useState(false);
+  const [cooldown, setCooldown] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
 
   const activeServices = getActiveServices();
   const activeService = activeServices.find(item => item.service.id === serviceId || item.service.slug === serviceId);
@@ -49,6 +51,26 @@ function ServiceCredentials() {
   const isSubscribed = isSubscribedToService(serviceId);
 
   const isWebhook = activeService?.group?.email_code_method === 'webhook';
+  const webhookListening = isWebhook && !!activeService?.group?.id;
+
+  useEffect(() => {
+    if (!user || !activeService?.group?.id) return;
+    let cancelled = false;
+
+    const fetchPayment = async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('payment_status, subscription_deadline')
+        .eq('group_id', activeService.group.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!cancelled) setPaymentStatus(data?.payment_status || 'active');
+    };
+
+    fetchPayment();
+    return () => { cancelled = true; };
+  }, [user, activeService?.group?.id]);
 
   const togglePassword = (index) => {
     setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
@@ -82,16 +104,41 @@ function ServiceCredentials() {
         });
         setCodeMessage('');
       }
-    } catch (err) {
+    } catch {
       // silent
     }
-  }, [activeService?.group?.id]);
+  }, [activeService]);
 
   useEffect(() => {
     if (!isWebhook || !activeService?.group?.id) return;
 
-    fetchLatestPin();
-    setWebhookListening(true);
+    const loadInitial = async () => {
+      try {
+        const { data } = await supabase
+          .from('verification_pins')
+          .select('code, source_email, created_at')
+          .eq('group_id', activeService.group.id)
+          .eq('used', false)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setVerificationCode({
+            code: data.code,
+            sender: data.source_email || '',
+            subject: '',
+            received_at: data.created_at,
+          });
+          setCodeMessage('');
+        }
+      } catch {
+        // silent
+      }
+    };
+
+    loadInitial();
 
     const channel = supabase
       .channel(`verification-pins-${activeService.group.id}`)
@@ -120,9 +167,8 @@ function ServiceCredentials() {
 
     return () => {
       supabase.removeChannel(channel);
-      setWebhookListening(false);
     };
-  }, [isWebhook, activeService?.group?.id, fetchLatestPin]);
+  }, [isWebhook, activeService?.group?.id]);
 
   const handleFetchCode = async () => {
     if (!activeService?.group?.id) return;
@@ -133,6 +179,8 @@ function ServiceCredentials() {
     setCodeMessage('');
     setVerificationCode(null);
     setLastFetchTime(now);
+    setCooldown(true);
+    setTimeout(() => setCooldown(false), 15000);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -227,6 +275,30 @@ function ServiceCredentials() {
         <p>Dados de acesso do seu grupo {group.name}.</p>
       </div>
 
+      {paymentStatus && paymentStatus !== 'active' && (
+        <div className="access-blocked-card">
+          <AlertTriangle size={32} />
+          <h3>Acesso Bloqueado</h3>
+          {paymentStatus === 'awaiting_entrance' && (
+            <p>Pague a taxa de entrada para liberar seu acesso.</p>
+          )}
+          {paymentStatus === 'entrance_paid' && (
+            <p>Taxa de entrada confirmada! Pague a assinatura mensal para liberar o acesso.</p>
+          )}
+          {paymentStatus === 'awaiting_subscription' && (
+            <p>Assinatura em processamento. Aguarde a confirmação.</p>
+          )}
+          {paymentStatus === 'expired' && (
+            <p>O prazo de 12h expirou. Entre novamente no grupo para tentar novamente.</p>
+          )}
+          <Link to={`/checkout/${group.slug || group.id}`} className="btn btn-primary" style={{ marginTop: '1rem' }}>
+            <CreditCard size={16} />
+            Ir para Pagamento
+          </Link>
+        </div>
+      )}
+
+      {(!paymentStatus || paymentStatus === 'active') && (
       <div className="credential-card" style={{ '--service-color': service.color }}>
         <div className="credential-header" style={{ backgroundColor: `${service.color}15` }}>
           <div className="credential-service">
@@ -377,7 +449,7 @@ function ServiceCredentials() {
                     <button
                       className="btn btn-primary fetch-code-btn"
                       onClick={handleFetchCode}
-                      disabled={fetchingCode || (Date.now() - lastFetchTime < 15000)}
+                      disabled={fetchingCode || cooldown}
                     >
                       {fetchingCode ? (
                         <>
@@ -470,6 +542,7 @@ function ServiceCredentials() {
           </div>
         </div>
       </div>
+      )}
 
       {showChat && (
         <GroupChat groupId={group.id} />

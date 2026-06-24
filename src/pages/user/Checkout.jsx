@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Loader2, Shield, ChevronLeft, CreditCard, Calendar, CheckCircle, ScrollText } from 'lucide-react';
+import { Loader2, Shield, ChevronLeft, CreditCard, CheckCircle, ScrollText, Clock } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
@@ -13,7 +13,8 @@ const CYCLE_OPTIONS = {
   annual: { label: 'Anual', months: 12 },
 };
 
-function monthsForCycle(cycle) {
+function monthsForCycle(cycle, group) {
+  if (cycle === 'custom') return group?.custom_cycle_months || 1;
   return CYCLE_OPTIONS[cycle]?.months ?? 1;
 }
 
@@ -29,16 +30,28 @@ function Checkout() {
   const { getGroupBySlug } = useAppDataContext();
   const referralCode = searchParams.get('ref');
 
+  const paymentStatus = searchParams.get('payment');
+
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [remoteGroup, setRemoteGroup] = useState(undefined);
+  const [memberStatus, setMemberStatus] = useState(null);
+
+  const [selectedCycleState, setSelectedCycleState] = useState(null);
 
   const localDetails = getGroupBySlug(groupSlug);
   const details = localDetails || remoteGroup || null;
 
+  const selectedCycle = (() => {
+    const d = localDetails || remoteGroup;
+    const available = d?.group?.available_cycles || ['monthly'];
+    if (selectedCycleState && available.includes(selectedCycleState)) return selectedCycleState;
+    return available[0] || 'monthly';
+  })();
+
+  // Fetch group data
   useEffect(() => {
     if (localDetails) return;
-
     let cancelled = false;
 
     const fetchGroup = async () => {
@@ -46,13 +59,7 @@ function Checkout() {
 
       const tryBySlug = await supabase
         .from('groups')
-        .select(`
-          *,
-          service:service_id (*),
-          members:group_members (*),
-          credential:group_credentials (*),
-          owner:owner_id (id, name, email)
-        `)
+        .select(`*, service:service_id (*), members:group_members (*), credential:group_credentials (*), owner:owner_id (id, name, email)`)
         .eq('slug', groupSlug)
         .eq('status', 'open')
         .maybeSingle();
@@ -64,13 +71,7 @@ function Checkout() {
       if (!cancelled && !groupData) {
         const tryById = await supabase
           .from('groups')
-          .select(`
-            *,
-            service:service_id (*),
-            members:group_members (*),
-            credential:group_credentials (*),
-            owner:owner_id (id, name, email)
-          `)
+          .select(`*, service:service_id (*), members:group_members (*), credential:group_credentials (*), owner:owner_id (id, name, email)`)
           .eq('id', groupSlug)
           .eq('status', 'open')
           .maybeSingle();
@@ -83,13 +84,7 @@ function Checkout() {
       if (!cancelled && !groupData) {
         const tryByName = await supabase
           .from('groups')
-          .select(`
-            *,
-            service:service_id (*),
-            members:group_members (*),
-            credential:group_credentials (*),
-            owner:owner_id (id, name, email)
-          `)
+          .select(`*, service:service_id (*), members:group_members (*), credential:group_credentials (*), owner:owner_id (id, name, email)`)
           .ilike('name', groupSlug)
           .eq('status', 'open')
           .maybeSingle();
@@ -121,22 +116,127 @@ function Checkout() {
     return () => { cancelled = true; };
   }, [groupSlug, localDetails]);
 
-  const [selectedCycle, setSelectedCycle] = useState(() => {
-    const d = localDetails || remoteGroup;
-    const available = d?.group?.available_cycles || ['monthly'];
-    return available[0] || 'monthly';
-  });
-
+  // Fetch member status if logged in
   useEffect(() => {
-    const d = localDetails || remoteGroup;
-    if (d?.group?.available_cycles) {
-      const available = d.group.available_cycles;
-      if (!available.includes(selectedCycle)) {
-        setSelectedCycle(available[0]);
-      }
-    }
-  }, [remoteGroup, localDetails]);
+    if (!user || !details?.group?.id) return;
+    let cancelled = false;
 
+    const fetchMember = async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('payment_status, entrance_paid_at, subscription_deadline, status')
+        .eq('group_id', details.group.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!cancelled) setMemberStatus(data);
+    };
+
+    fetchMember();
+    return () => { cancelled = true; };
+  }, [user, details?.group?.id]);
+
+  // Handle payment return
+  useEffect(() => {
+    if (!paymentStatus || !user || !details?.group?.id) return;
+
+    if (paymentStatus === 'entrance_success') {
+      // Refresh member status after entrance payment
+      const refresh = async () => {
+        const { data } = await supabase
+          .from('group_members')
+          .select('payment_status, entrance_paid_at, subscription_deadline, status')
+          .eq('group_id', details.group.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        setMemberStatus(data);
+      };
+      refresh();
+    } else if (paymentStatus === 'subscription_success') {
+      // Subscription paid - redirect to credentials
+      navigate(`/dashboard/services/${details.service?.slug || details.service?.id}`);
+    }
+  }, [paymentStatus, user, details, navigate]);
+
+  const handleEntrancePayment = async () => {
+    setProcessing(true);
+    setError('');
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error('Você precisa estar logado.');
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercado-pago-create-subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          group_id: details.group.id,
+          user_id: user.id,
+          payment_type: 'entrance',
+          reason: `Taxa de Entrada - ${service?.name || service?.full_name}`,
+          back_url: `${window.location.origin}/checkout/${groupSlug}`,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Erro ao criar pagamento.');
+
+      if (data.init_point) window.location.href = data.init_point;
+      else if (data.sandbox_init_point) window.location.href = data.sandbox_init_point;
+      else throw new Error('Link de pagamento não disponível.');
+    } catch (err) {
+      setError(err.message);
+      setProcessing(false);
+    }
+  };
+
+  const handleSubscriptionPayment = async () => {
+    setProcessing(true);
+    setError('');
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error('Você precisa estar logado.');
+
+      const { group, service } = details;
+      const cycleMonths = monthsForCycle(selectedCycle, group);
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercado-pago-create-subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          group_id: group.id,
+          user_id: user.id,
+          billing_cycle: selectedCycle,
+          months: cycleMonths,
+          payment_type: 'subscription',
+          reason: `DividePass - ${service?.name || service?.full_name}`,
+          back_url: `${window.location.origin}/checkout/${groupSlug}`,
+          referral_code: referralCode || null,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Erro ao criar pagamento.');
+
+      if (data.init_point) window.location.href = data.init_point;
+      else if (data.sandbox_init_point) window.location.href = data.sandbox_init_point;
+      else throw new Error('Link de pagamento não disponível.');
+    } catch (err) {
+      setError(err.message);
+      setProcessing(false);
+    }
+  };
+
+  // Loading state
   if (details === undefined) {
     return (
       <div className="fade-in checkout-page">
@@ -148,349 +248,332 @@ function Checkout() {
     );
   }
 
+  // Not found
   if (!details) {
     return (
       <div className="fade-in checkout-page">
         <div className="empty-checkout">
           <h2>Grupo não encontrado</h2>
-          <Link to="/dashboard/catalog" className="btn btn-primary">
-            Voltar ao Catálogo
-          </Link>
+          <Link to="/dashboard/catalog" className="btn btn-primary">Voltar ao Catálogo</Link>
         </div>
       </div>
     );
   }
 
   const { group, service, spots } = details;
+  const hasEntranceFee = group.has_entrance_fee && Number(group.entrance_fee || 0) > 0;
+  const entranceAmount = hasEntranceFee ? Number(group.entrance_fee) : 0;
   const availableCycles = group.available_cycles || ['monthly'];
   const validSelectedCycle = availableCycles.includes(selectedCycle) ? selectedCycle : availableCycles[0];
-  const cycleMonths = monthsForCycle(validSelectedCycle);
-  const cycleDiscount = Number(group.cycle_discount || 0);
-  const baseTotal = Number(group.price_per_slot) * cycleMonths;
-  const discountAmount = baseTotal * (cycleDiscount / 100);
-  const totalAmount = baseTotal - discountAmount;
+  const cycleMonths = monthsForCycle(validSelectedCycle, group);
+  const subscriptionAmount = Number(group.price_per_slot) * cycleMonths;
 
-  const entranceFee = group.has_entrance_fee ? Number(group.entrance_fee || 0) : 0;
-  const totalWithEntrance = totalAmount + (entranceFee > 0 && group._isFirstPayment !== false ? entranceFee : 0);
-
+  // Full group
   if (spots <= 0) {
     return (
       <div className="fade-in checkout-page">
         <div className="empty-checkout">
           <h2>Grupo Cheio</h2>
           <p>Este grupo já atingiu o limite de membros.</p>
-          <Link to={`/dashboard/catalog/${service?.slug || service?.id}`} className="btn btn-primary">
-            Ver Outros Grupos
-          </Link>
+          <Link to={`/dashboard/catalog/${service?.slug || service?.id}`} className="btn btn-primary">Ver Outros Grupos</Link>
         </div>
       </div>
     );
   }
 
+  // Not logged in
   if (!user) {
     return (
       <div className="fade-in checkout-page">
         <button onClick={() => navigate(-1)} className="back-btn">
-          <ChevronLeft size={18} />
-          Voltar
+          <ChevronLeft size={18} /> Voltar
         </button>
-
         <div className="page-header">
           <h1>Finalizar Assinatura</h1>
           <p>Faça login ou crie uma conta para continuar.</p>
         </div>
-
         <div className="checkout-grid checkout-simple">
           <div className="checkout-summary">
-            <h3>Resumo da Assinatura</h3>
+            <h3>Resumo</h3>
             <div className="summary-item summary-service">
-              <div
-                className="summary-icon"
-                style={{ backgroundColor: service?.color }}
-              >
-                {service?.icon}
-              </div>
+              <div className="summary-icon" style={{ backgroundColor: service?.color }}>{service?.icon}</div>
               <div>
-                <h4>{service?.fullName || service?.full_name}</h4>
+                <h4>{service?.full_name}</h4>
                 <p>{group.name}</p>
               </div>
             </div>
-
             {group.rules && (
               <div className="checkout-rules">
                 <ScrollText size={18} />
-                <div>
-                  <strong>Regras do grupo</strong>
-                  <p>{group.rules}</p>
-                </div>
+                <div><strong>Regras do grupo</strong><p>{group.rules}</p></div>
               </div>
             )}
-
-            <div className="summary-row">
-              <span>Preço mensal</span>
-              <strong>{formatCurrency(group.price_per_slot)}</strong>
-            </div>
-            <div className="summary-row">
-              <span>Vagas restantes</span>
-              <strong>{spots === Infinity ? 'Ilimitadas' : `${spots} ${spots === 1 ? 'vaga' : 'vagas'}`}</strong>
-            </div>
-
+            <div className="summary-row"><span>Preço mensal</span><strong>{formatCurrency(group.price_per_slot)}</strong></div>
+            {hasEntranceFee && <div className="summary-row entrance-row"><span>Taxa de entrada (única)</span><strong>{formatCurrency(entranceAmount)}</strong></div>}
             <div className="summary-row summary-total">
-              <span>Total a pagar</span>
-              <strong>{formatCurrency(totalAmount)}</strong>
+              <span>Total primeiro pagamento</span>
+              <strong>{formatCurrency(hasEntranceFee ? entranceAmount : subscriptionAmount)}</strong>
             </div>
           </div>
-
           <div className="checkout-payment checkout-payment-simple">
             <div className="payment-provider">
-              <div className="provider-badge">
-                <Shield size={28} />
-              </div>
+              <div className="provider-badge"><Shield size={28} /></div>
               <h3>Entre para continuar</h3>
-              <p>
-                Faça login na sua conta ou crie uma nova para finalizar a assinatura deste grupo.
-              </p>
+              <p>Faça login ou crie uma conta para finalizar.</p>
             </div>
-
             <div className="auth-buttons-checkout">
-              <Link
-                to={`/login${referralCode ? `?ref=${referralCode}` : ''}`}
-                className="btn btn-primary btn-full"
-              >
-                Entrar
-              </Link>
-              <Link
-                to={`/register${referralCode ? `?ref=${referralCode}` : ''}`}
-                className="btn btn-outline btn-full"
-              >
-                Criar Conta
-              </Link>
+              <Link to={`/login${referralCode ? `?ref=${referralCode}` : ''}`} className="btn btn-primary btn-full">Entrar</Link>
+              <Link to={`/register${referralCode ? `?ref=${referralCode}` : ''}`} className="btn btn-outline btn-full">Criar Conta</Link>
             </div>
-
-            <p className="secure-note">
-              <Shield size={14} />
-              Ambiente criptografado e seguro.
-            </p>
+            <p className="secure-note"><Shield size={14} /> Ambiente criptografado e seguro.</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const handlePayment = async () => {
-    setProcessing(true);
-    setError('');
+  // ============================================
+  // STEP 1: Mostrar pagamento da taxa de entrada
+  // ============================================
+  if (hasEntranceFee && (!memberStatus || memberStatus.payment_status === 'awaiting_entrance')) {
+    return (
+      <div className="fade-in checkout-page">
+        <button onClick={() => navigate(-1)} className="back-btn">
+          <ChevronLeft size={18} /> Voltar
+        </button>
+        <div className="page-header">
+          <h1>Passo 1 de 2 — Taxa de Entrada</h1>
+          <p>Pagamento único para garantir sua vaga no grupo.</p>
+        </div>
 
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+        {error && <div className="error-banner">{error}</div>}
 
-      if (!accessToken) {
-        throw new Error('Você precisa estar logado para finalizar o pagamento.');
-      }
+        <div className="checkout-grid checkout-simple">
+          <div className="checkout-summary">
+            <h3>Resumo da Taxa de Entrada</h3>
+            <div className="summary-item summary-service">
+              <div className="summary-icon" style={{ backgroundColor: service?.color }}>{service?.icon}</div>
+              <div><h4>{service?.full_name}</h4><p>{group.name}</p></div>
+            </div>
 
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercado-pago-create-subscription`;
+            <div className="entrance-fee-highlight">
+              <div className="entrance-fee-header">
+                <span className="entrance-fee-icon">!</span>
+                <strong>Taxa de Entrada: {formatCurrency(entranceAmount)}</strong>
+              </div>
+              <p className="entrance-fee-desc">Este valor é cobrado apenas UMA VEZ para garantir sua vaga no grupo.</p>
+              <p className="entrance-fee-desc" style={{ marginTop: '0.5rem' }}>Após confirmação, você terá até 12 horas para concluir o pagamento da assinatura mensal.</p>
+            </div>
 
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          group_id: details.group.id,
-          user_id: user.id,
-          amount: totalWithEntrance,
-          billing_cycle: validSelectedCycle,
-          months: cycleMonths,
-          reason: `DividePass - ${service?.name || service?.full_name}`,
-          back_url: `${import.meta.env.VITE_MERCADO_PAGO_BACK_URL || window.location.origin}/payment/return`,
-          referral_code: referralCode || null,
-        }),
-      });
+            <div className="payment-flow-steps">
+              <div className="payment-step active">
+                <div className="step-number">1</div>
+                <span>Taxa de Entrada</span>
+              </div>
+              <div className="payment-step-line" />
+              <div className="payment-step">
+                <div className="step-number">2</div>
+                <span>Assinatura Mensal</span>
+              </div>
+            </div>
 
-      const data = await response.json();
+            <div className="summary-row summary-total">
+              <span>Total agora</span>
+              <strong>{formatCurrency(entranceAmount)}</strong>
+            </div>
+          </div>
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao iniciar pagamento.');
-      }
+          <div className="checkout-payment">
+            <div className="payment-provider">
+              <div className="provider-badge"><CreditCard size={28} /></div>
+              <h3>Pagar Taxa de Entrada</h3>
+              <p>Pagamento único via Mercado Pago. Após confirmação, avance para a assinatura.</p>
+            </div>
+            <button className="btn btn-primary btn-full btn-lg" onClick={handleEntrancePayment} disabled={processing}>
+              {processing ? (<><Loader2 size={18} className="spin" /> Processando...</>) : (<><CreditCard size={18} /> Pagar {formatCurrency(entranceAmount)}</>)}
+            </button>
+            <p className="secure-note"><Shield size={14} /> Pagamento seguro via Mercado Pago</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else if (data.sandbox_init_point) {
-        window.location.href = data.sandbox_init_point;
-      } else {
-        throw new Error('Link de pagamento não disponível.');
-      }
-    } catch (err) {
-      setError(err.message);
-      setProcessing(false);
-    }
-  };
+  // ============================================
+  // STEP 1.5: Entrada paga, aguardando assinatura
+  // ============================================
+  if (hasEntranceFee && memberStatus?.payment_status === 'entrance_paid') {
+    const deadline = new Date(memberStatus.subscription_deadline);
+    const now = new Date();
+    const hoursLeft = Math.max(0, (deadline - now) / (1000 * 60 * 60));
 
+    return (
+      <div className="fade-in checkout-page">
+        <button onClick={() => navigate(-1)} className="back-btn">
+          <ChevronLeft size={18} /> Voltar
+        </button>
+        <div className="page-header">
+          <h1>Passo 2 de 2 — Assinatura Mensal</h1>
+          <p>Taxa de entrada confirmada! Agora pague a assinatura para liberar o acesso.</p>
+        </div>
+
+        {error && <div className="error-banner">{error}</div>}
+
+        <div className="checkout-grid checkout-simple">
+          <div className="checkout-summary">
+            <h3>Resumo da Assinatura</h3>
+
+            <div className="entrance-paid-badge">
+              <CheckCircle size={18} />
+              <span>Taxa de entrada paga: {formatCurrency(entranceAmount)}</span>
+            </div>
+
+            <div className="deadline-warning">
+              <Clock size={18} />
+              <div>
+                <strong>Prazo: {Math.floor(hoursLeft)}h {Math.floor((hoursLeft % 1) * 60)}min restantes</strong>
+                <p>Complete o pagamento da assinatura antes do prazo para garantir sua vaga.</p>
+              </div>
+            </div>
+
+            <div className="payment-flow-steps">
+              <div className="payment-step completed">
+                <div className="step-number"><CheckCircle size={16} /></div>
+                <span>Taxa de Entrada</span>
+              </div>
+              <div className="payment-step-line completed" />
+              <div className="payment-step active">
+                <div className="step-number">2</div>
+                <span>Assinatura Mensal</span>
+              </div>
+            </div>
+
+            <div className="summary-row"><span>Preço mensal</span><strong>{formatCurrency(group.price_per_slot)}</strong></div>
+            {validSelectedCycle !== 'monthly' && (
+              <div className="summary-row"><span>Ciclo</span><strong>{CYCLE_OPTIONS[validSelectedCycle]?.label || validSelectedCycle} ({cycleMonths}x)</strong></div>
+            )}
+            <div className="summary-row summary-total">
+              <span>Total agora</span>
+              <strong>{formatCurrency(subscriptionAmount)}</strong>
+            </div>
+          </div>
+
+          <div className="checkout-payment">
+            <div className="payment-provider">
+              <div className="provider-badge"><CreditCard size={28} /></div>
+              <h3>Pagar Assinatura</h3>
+              <p>Pagamento recorrente mensal via Mercado Pago.</p>
+            </div>
+
+            {availableCycles.length > 1 && (
+              <div className="cycle-selector">
+                <label>Ciclo de cobrança</label>
+                <div className="cycle-options">
+                  {availableCycles.map(key => {
+                    if (key === 'custom') {
+                      const label = group.custom_cycle_label || `${group.custom_cycle_months || '?'} meses`;
+                      return (
+                        <button key={key} className={`cycle-btn ${validSelectedCycle === key ? 'active' : ''}`} onClick={() => setSelectedCycleState(key)}>
+                          <span className="cycle-label">{label}</span>
+                        </button>
+                      );
+                    }
+                    return (
+                      <button key={key} className={`cycle-btn ${validSelectedCycle === key ? 'active' : ''}`} onClick={() => setSelectedCycleState(key)}>
+                        <span className="cycle-label">{CYCLE_OPTIONS[key]?.label || key}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button className="btn btn-primary btn-full btn-lg" onClick={handleSubscriptionPayment} disabled={processing}>
+              {processing ? (<><Loader2 size={18} className="spin" /> Processando...</>) : (<><CreditCard size={18} /> Pagar {formatCurrency(subscriptionAmount)}</>)}
+            </button>
+            <p className="secure-note"><Shield size={14} /> Pagamento seguro via Mercado Pago</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // FLUXO SEM TAXA DE ENTRADA (direto à assinatura)
+  // ============================================
   return (
     <div className="fade-in checkout-page">
       <button onClick={() => navigate(-1)} className="back-btn">
-        <ChevronLeft size={18} />
-        Voltar
+        <ChevronLeft size={18} /> Voltar
       </button>
-
       <div className="page-header">
         <h1>Finalizar Assinatura</h1>
         <p>Revise os dados e siga para o pagamento seguro.</p>
       </div>
 
+      {error && <div className="error-banner">{error}</div>}
+
       <div className="checkout-grid checkout-simple">
         <div className="checkout-summary">
           <h3>Resumo da Assinatura</h3>
           <div className="summary-item summary-service">
-            <div
-              className="summary-icon"
-              style={{ backgroundColor: service?.color }}
-            >
-              {service?.icon}
-            </div>
-            <div>
-              <h4>{service?.fullName || service?.full_name}</h4>
-              <p>{group.name}</p>
-            </div>
+            <div className="summary-icon" style={{ backgroundColor: service?.color }}>{service?.icon}</div>
+            <div><h4>{service?.full_name}</h4><p>{group.name}</p></div>
           </div>
 
           {group.rules && (
             <div className="checkout-rules">
               <ScrollText size={18} />
-              <div>
-                <strong>Regras do grupo</strong>
-                <p>{group.rules}</p>
-              </div>
+              <div><strong>Regras do grupo</strong><p>{group.rules}</p></div>
             </div>
           )}
 
-          <div className="summary-row">
-            <span>Preço mensal</span>
-            <strong>{formatCurrency(group.price_per_slot)}</strong>
+          <div className="summary-row"><span>Preço mensal</span><strong>{formatCurrency(group.price_per_slot)}</strong></div>
+          {validSelectedCycle !== 'monthly' && (
+            <div className="summary-row"><span>Ciclo</span><strong>{CYCLE_OPTIONS[validSelectedCycle]?.label || validSelectedCycle} ({cycleMonths}x)</strong></div>
+          )}
+          <div className="summary-row"><span>Vagas restantes</span><strong>{spots === Infinity ? 'Ilimitadas' : `${spots} ${spots === 1 ? 'vaga' : 'vagas'}`}</strong></div>
+
+          <div className="summary-row summary-total">
+            <span>Total a pagar</span>
+            <strong>{formatCurrency(subscriptionAmount)}</strong>
           </div>
-          <div className="summary-row">
-            <span>Vagas restantes</span>
-            <strong>{spots === Infinity ? 'Ilimitadas' : `${spots} ${spots === 1 ? 'vaga' : 'vagas'}`}</strong>
+        </div>
+
+        <div className="checkout-payment">
+          <div className="payment-provider">
+            <div className="provider-badge"><CreditCard size={28} /></div>
+            <h3>Pagar Assinatura</h3>
+            <p>Pagamento recorrente mensal via Mercado Pago.</p>
           </div>
 
-          <div className="cycle-selector">
-            <label>Escolha o período de assinatura</label>
-            <div className="cycle-options">
-              {Object.entries(CYCLE_OPTIONS)
-                .filter(([key]) => availableCycles.includes(key))
-                .map(([key, { label, months }]) => {
-                  const isSelected = validSelectedCycle === key;
-                  const monthsTotal = Number(group.price_per_slot) * months;
-                  const discounted = monthsTotal * (1 - cycleDiscount / 100);
-                  const perMonth = months > 1 ? formatCurrency(discounted / months) : null;
+          {availableCycles.length > 1 && (
+            <div className="cycle-selector">
+              <label>Ciclo de cobrança</label>
+              <div className="cycle-options">
+                {availableCycles.map(key => {
+                  if (key === 'custom') {
+                    const label = group.custom_cycle_label || `${group.custom_cycle_months || '?'} meses`;
+                    return (
+                      <button key={key} className={`cycle-btn ${validSelectedCycle === key ? 'active' : ''}`} onClick={() => setSelectedCycleState(key)}>
+                        <span className="cycle-label">{label}</span>
+                      </button>
+                    );
+                  }
                   return (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`cycle-option ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedCycle(key)}
-                    >
-                      <span className="cycle-label">{label}</span>
-                      <span className="cycle-price">{formatCurrency(discounted)}</span>
-                      {months > 1 && (
-                        <span className="cycle-months">{months}x de {perMonth}</span>
-                      )}
-                      {months > 1 && cycleDiscount > 0 && (
-                        <span className="cycle-discount">-{cycleDiscount}%</span>
-                      )}
+                    <button key={key} className={`cycle-btn ${validSelectedCycle === key ? 'active' : ''}`} onClick={() => setSelectedCycleState(key)}>
+                      <span className="cycle-label">{CYCLE_OPTIONS[key]?.label || key}</span>
                     </button>
                   );
                 })}
-            </div>
-          </div>
-
-          {entranceFee > 0 && (
-            <div className="entrance-fee-highlight">
-              <div className="entrance-fee-header">
-                <span className="entrance-fee-icon">!</span>
-                <strong>Taxa de Entrada — Pagamento Único</strong>
-              </div>
-              <p className="entrance-fee-desc">
-                Este valor é cobrado <strong>somente uma vez</strong> para garantir sua vaga no grupo.
-                Nas renovações futuras você pagará apenas o valor da assinatura.
-              </p>
-              <div className="entrance-fee-amount">
-                + {formatCurrency(entranceFee)}
               </div>
             </div>
           )}
 
-          <div className="summary-row summary-total">
-            <span>Total a pagar hoje</span>
-            <strong>{formatCurrency(totalWithEntrance)}</strong>
-          </div>
-
-          {entranceFee > 0 && (
-            <div className="renewal-note">
-              <Calendar size={14} />
-              <span>Próxima renovação: <strong>{formatCurrency(totalAmount)}</strong> ({formatCurrency(group.price_per_slot)}/mês)</span>
-            </div>
-          )}
-        </div>
-
-        <div className="checkout-payment checkout-payment-simple">
-          <div className="payment-provider">
-            <div className="provider-badge">
-              <Shield size={28} />
-            </div>
-            <h3>Pagamento processado pelo Mercado Pago</h3>
-            <p>
-              Você será redirecionado para o Mercado Pago para concluir o pagamento
-              de forma segura. Pode pagar com PIX, cartão de crédito ou saldo.
-            </p>
-          </div>
-
-          <ul className="payment-benefits">
-            <li>
-              <CheckCircle size={18} />
-              <span>Cobrança automática todo mês</span>
-            </li>
-            <li>
-              <Calendar size={18} />
-              <span>Cancele quando quiser</span>
-            </li>
-            <li>
-              <CreditCard size={18} />
-              <span>PIX, cartão e outros meios</span>
-            </li>
-          </ul>
-
-          <button
-            className="btn btn-primary btn-full btn-pay"
-            onClick={handlePayment}
-            disabled={processing}
-          >
-            {processing ? (
-              <>
-                <Loader2 size={20} className="spin" />
-                Preparando pagamento...
-              </>
-            ) : (
-              <>
-                <Shield size={18} />
-                Pagar {formatCurrency(totalAmount)}
-              </>
-            )}
+          <button className="btn btn-primary btn-full btn-lg" onClick={handleSubscriptionPayment} disabled={processing}>
+            {processing ? (<><Loader2 size={18} className="spin" /> Processando...</>) : (<><CreditCard size={18} /> Pagar {formatCurrency(subscriptionAmount)}</>)}
           </button>
-
-          {error && (
-            <p className="secure-note" style={{ color: '#EF4444', marginTop: '0.5rem' }}>
-              {error}
-            </p>
-          )}
-
-          <p className="secure-note">
-            <Shield size={14} />
-            Ambiente criptografado e certificado pelo Mercado Pago.
-          </p>
+          <p className="secure-note"><Shield size={14} /> Pagamento seguro via Mercado Pago</p>
         </div>
       </div>
     </div>

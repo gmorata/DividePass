@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Save, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,30 +11,17 @@ export default function UserProfile() {
   const { user, profile, refreshProfile } = useAuth();
   const fileInputRef = useRef(null);
 
-  const [form, setForm] = useState({
-    name: '',
-    nickname: '',
-    phone: '',
-    birthdate: '',
-  });
-  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [form, setForm] = useState(() => ({
+    name: profile?.name || '',
+    nickname: profile?.nickname || '',
+    phone: profile?.phone || '',
+    birthdate: profile?.birthdate || '',
+  }));
+  const [avatarUrl, setAvatarUrl] = useState(() => profile?.avatar_url || null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-
-  useEffect(() => {
-    if (profile) {
-      setForm({
-        name: profile.name || '',
-        nickname: profile.nickname || '',
-        phone: profile.phone || '',
-        birthdate: profile.birthdate || '',
-      });
-      setAvatarUrl(profile.avatar_url || null);
-    }
-  }, [profile]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -66,7 +53,7 @@ export default function UserProfile() {
     const ext = avatarFile.name.split('.').pop();
     const path = `${user.id}/avatar.${ext}`;
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('profile-photos')
       .upload(path, avatarFile, { upsert: true });
 

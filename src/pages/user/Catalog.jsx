@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell, ArrowUpDown, Pin, Star } from 'lucide-react';
+import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell, Pin, Star } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
@@ -70,13 +70,6 @@ function Catalog() {
     ? streamingServices.find(s => s.id === serviceId || s.slug === serviceId)
     : null;
 
-  useEffect(() => {
-    const cat = searchParams.get('categoria');
-    if (cat && CATEGORIES.find(c => c.key === cat)) {
-      setSelectedCategory(cat);
-    }
-  }, [searchParams]);
-
   const handleCategoryChange = (key) => {
     setSelectedCategory(key);
     if (key === 'all') {
@@ -116,7 +109,7 @@ function Catalog() {
     const hasNoOwner = allGroups.some(g => !g.owner);
     if (!hasNoOwner || adminUser) return;
     const fetchAdmin = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('id, name, avatar_url, role')
         .limit(1)
@@ -129,11 +122,11 @@ function Catalog() {
   const getActiveMembers = (group) =>
     group.members?.filter(m => m.status === 'active').length || 0;
 
-  const getSpots = (group, service) => {
+  const getSpots = useCallback((group, service) => {
     if (group.has_slot_limit === false) return Infinity;
     const maxSize = service?.max_group_size || group.max_size;
     return Math.max(0, maxSize - getActiveMembers(group));
-  };
+  }, []);
 
   const isFull = (group, service) => {
     if (group.has_slot_limit === false) return false;
@@ -191,6 +184,13 @@ function Catalog() {
     if (verifiedOnly) {
       result = result.filter(g => g.verified);
     }
+    // Sort: official groups first, then by created_at desc
+    result = [...result].sort((a, b) => {
+      if (a.is_official && !b.is_official) return -1;
+      if (!a.is_official && b.is_official) return 1;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
     if (sortBy === 'price_asc') {
       result = [...result].sort((a, b) => a.price_per_slot - b.price_per_slot);
     } else if (sortBy === 'price_desc') {
@@ -199,7 +199,7 @@ function Catalog() {
       result = [...result].sort((a, b) => getSpots(b, selectedService) - getSpots(a, selectedService));
     }
     return result;
-  }, [allServiceGroups, search, verifiedOnly, sortBy, selectedService]);
+  }, [allServiceGroups, search, verifiedOnly, sortBy, selectedService, getSpots]);
 
   const filteredServices = useMemo(() => {
     let result = availableServices;
@@ -376,17 +376,26 @@ function Catalog() {
                     </span>
                   </div>
 
-                  {group.owner ? (
-                    <Link to={`/dashboard/user/${group.owner.id}`} className={`group-card-creator ${group.owner.role === 'admin' ? 'official' : ''}`}>
+                  {group.is_official ? (
+                    <Link to={adminUser ? `/dashboard/user/${adminUser.id}` : '#'} className="group-card-creator official">
+                      {adminUser?.avatar_url ? (
+                        <img src={adminUser.avatar_url} alt="" className="group-card-creator-avatar" />
+                      ) : (
+                        <div className="group-card-creator-avatar-placeholder">DP</div>
+                      )}
+                      <span>Criado por: <strong>DividePass</strong></span>
+                      <span className="group-card-official-seal">Oficial</span>
+                    </Link>
+                  ) : group.owner ? (
+                    <Link to={`/dashboard/user/${group.owner.id}`} className="group-card-creator">
                       {group.owner.avatar_url ? (
                         <img src={group.owner.avatar_url} alt="" className="group-card-creator-avatar" />
                       ) : (
                         <div className="group-card-creator-avatar-placeholder">
-                          {group.owner.role === 'admin' ? 'DP' : (group.owner.name || 'U')[0].toUpperCase()}
+                          {(group.owner.name || 'U')[0].toUpperCase()}
                         </div>
                       )}
-                      <span>Criado por: <strong>{group.owner.role === 'admin' ? 'DividePass' : (group.owner.name || 'Admin')}</strong></span>
-                      {group.owner.role === 'admin' && <span className="group-card-official-seal">Oficial</span>}
+                      <span>Criado por: <strong>{group.owner.name || 'Admin'}</strong></span>
                     </Link>
                   ) : adminUser ? (
                     <Link to={`/dashboard/user/${adminUser.id}`} className="group-card-creator official">
