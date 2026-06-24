@@ -342,10 +342,13 @@ function Checkout() {
     );
   }
 
+  const entrancePaid = hasEntranceFee && (memberStatus?.payment_status === 'entrance_paid' || memberStatus?.payment_status === 'awaiting_subscription' || memberStatus?.payment_status === 'active');
+  const entranceExpired = hasEntranceFee && memberStatus?.payment_status === 'expired';
+
   // ============================================
   // STEP 1: Mostrar pagamento da taxa de entrada
   // ============================================
-  if (hasEntranceFee && (!memberStatus || memberStatus.payment_status === 'awaiting_entrance')) {
+  if (hasEntranceFee && !entrancePaid && !entranceExpired) {
     return (
       <div className="fade-in checkout-page">
         <button onClick={() => navigate(-1)} className="back-btn">
