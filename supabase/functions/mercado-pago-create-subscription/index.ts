@@ -164,61 +164,82 @@ export default {
         const subscriptionAmount = group.price_per_slot;
 
         // Mapear ciclo para frequência do MP Preapproval
-        // frequency_type: "daily" | "monthly" | "yearly"
-        // frequency: número de períodos entre cobranças
-        const mpFrequencyType = "monthly";
+        const mpFrequencyType = "months";
         let mpFrequency = 1;
         if (cycle === "quarterly") mpFrequency = 3;
         else if (cycle === "semiannual") mpFrequency = 6;
         else if (cycle === "annual") mpFrequency = 12;
 
-        // Criar preapproval (assinatura recorrente) no Mercado Pago
-        const preapprovalBody = {
-          reason: reason,
-          payer_email: "", // será coletado no checkout do MP
-          frequency: mpFrequency,
-          frequency_type: mpFrequencyType,
-          transaction_amount: subscriptionAmount,
-          currency_id: "BRL",
-          back_url: `${back_url}?payment=subscription_success`,
-          status: "pending",
-          notification_url: webhookUrl,
-          external_reference: `${group_id}:${user_id}:subscription`,
-          statement_descriptor: "DIVIDEPASS",
+        // ============================================
+        // Buscar ou criar preapproval_plan no MP
+        // Chave: amount + frequency + frequency_type
+        // ============================================
+        const planKey = `plan_${subscriptionAmount}_${mpFrequency}_${mpFrequencyType}`;
+        const mpHeaders = {
+          "Authorization": `Bearer ${mpAccessToken}`,
+          "Content-Type": "application/json",
         };
 
-        console.log("Creating preapproval:", JSON.stringify(preapprovalBody));
+        // Verificar se já existe um plano salvo no banco
+        const { data: existingPlan } = await supabaseAdmin
+          .from("app_settings")
+          .select("value")
+          .eq("key", planKey)
+          .maybeSingle();
 
-        const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${mpAccessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(preapprovalBody),
-        });
+        let preapprovalPlanId = existingPlan?.value;
 
-        const mpData = await mpResponse.json();
+        if (!preapprovalPlanId) {
+          console.log(`Creating new preapproval plan: ${planKey}`);
+          const planBody = {
+            reason: reason,
+            auto_recurring: {
+              frequency: mpFrequency,
+              frequency_type: mpFrequencyType,
+              transaction_amount: subscriptionAmount,
+              currency_id: "BRL",
+            },
+            payment_methods_allowed: {
+              payment_types: [
+                { id: "credit_card" },
+                { id: "debit_card" },
+              ],
+            },
+            back_url: `${back_url}?payment=subscription_success`,
+          };
 
-        if (!mpResponse.ok) {
-          console.error("MP preapproval error:", mpData);
-          return new Response(
-            JSON.stringify({ error: "Erro ao criar assinatura recorrente", details: mpData }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          const planResp = await fetch("https://api.mercadopago.com/preapproval_plan", {
+            method: "POST",
+            headers: mpHeaders,
+            body: JSON.stringify(planBody),
+          });
+
+          const planData = await planResp.json();
+
+          if (!planResp.ok) {
+            console.error("MP plan creation error:", planData);
+            return new Response(
+              JSON.stringify({ error: "Erro ao criar plano de assinatura", details: planData }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          preapprovalPlanId = planData.id;
+
+          // Salvar no banco para reutilizar
+          await supabaseAdmin.from("app_settings").insert({
+            key: planKey,
+            value: preapprovalPlanId,
+          });
+
+          console.log(`Plan created: ${preapprovalPlanId}`);
         }
 
-        // Atualizar membro
-        await supabaseAdmin
-          .from("group_members")
-          .update({
-            payment_status: "awaiting_subscription",
-            subscription_mp_id: mpData.id,
-          })
-          .eq("group_id", group_id)
-          .eq("user_id", user_id);
+        // O MP exige card_token_id para criar preapproval via API.
+        // Solução: redirecionar para o checkout do plano que coleta o cartão automaticamente.
+        // O external_reference é passado como query param e capturado no webhook.
 
-        // Registrar assinatura pendente
+        // Registrar pendente no banco antes de redirecionar
         await supabaseAdmin
           .from("user_subscriptions")
           .upsert({
@@ -226,13 +247,24 @@ export default {
             group_id,
             service_id: group.service_id,
             billing_cycle: cycle,
-            mercado_pago_subscription_id: mpData.id,
             amount: subscriptionAmount,
             status: "pending",
             mercado_pago_status: "pending",
             external_reference: `${group_id}:${user_id}:subscription`,
             started_at: new Date().toISOString(),
           }, { onConflict: "user_id, group_id" });
+
+        // Atualizar membro
+        await supabaseAdmin
+          .from("group_members")
+          .update({
+            payment_status: "awaiting_subscription",
+          })
+          .eq("group_id", group_id)
+          .eq("user_id", user_id);
+
+        // URL de checkout do plano - o MP coleta cartão e cria a assinatura
+        const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${preapprovalPlanId}`;
 
         // Referral
         if (referral_code) {
@@ -269,8 +301,7 @@ export default {
 
         return Response.json(
           {
-            preapproval_id: mpData.id,
-            init_point: mpData.init_point || mpData.sandbox_init_point,
+            init_point: checkoutUrl,
             payment_type: "subscription",
           },
           { headers: corsHeaders }

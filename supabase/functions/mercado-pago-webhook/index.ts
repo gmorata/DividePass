@@ -157,17 +157,56 @@ export default {
         const preapproval = await mpResponse.json();
         const externalReference = preapproval.external_reference;
 
-        if (!externalReference) {
-          console.error("Preapproval without external_reference");
+        let group_id: string;
+        let user_id: string;
+
+        if (externalReference && externalReference.includes(":")) {
+          const parts = externalReference.split(":");
+          group_id = parts[0];
+          user_id = parts[1];
+        } else if (preapproval.preapproval_plan_id) {
+          // Plano checkout - buscar plano no banco e encontrar a assinatura pendente
+          const planKey = null;
+          const { data: planEntry } = await supabaseAdmin
+            .from("app_settings")
+            .select("key, value")
+            .eq("value", preapproval.preapproval_plan_id)
+            .like("key", "plan_%")
+            .maybeSingle();
+
+          if (!planEntry) {
+            console.error("Plan not found in app_settings", preapproval.preapproval_plan_id);
+            return new Response("OK", { status: 200, headers: corsHeaders });
+          }
+
+          // Extrair dados do plano: plan_{amount}_{freq}_{type}
+          const planParts = planEntry.key.replace("plan_", "").split("_");
+          const planAmount = parseFloat(planParts[0]);
+
+          // Buscar assinatura pendente mais recente para este plano
+          const { data: pendingSub } = await supabaseAdmin
+            .from("user_subscriptions")
+            .select("user_id, group_id")
+            .eq("status", "pending")
+            .eq("amount", planAmount)
+            .order("started_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!pendingSub) {
+            console.error("No pending subscription found for plan", planEntry.key);
+            return new Response("OK", { status: 200, headers: corsHeaders });
+          }
+
+          group_id = pendingSub.group_id;
+          user_id = pendingSub.user_id;
+        } else {
+          console.error("Preapproval without external_reference or plan_id");
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        const parts = externalReference.split(":");
-        const group_id = parts[0];
-        const user_id = parts[1];
-
         if (!group_id || !user_id) {
-          console.error("Invalid external_reference", externalReference);
+          console.error("Could not resolve group_id/user_id");
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
