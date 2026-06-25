@@ -488,15 +488,31 @@
   margin: 0;
 }
 
+/* Payment button group */
+.payment-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.payment-buttons .btn {
+  padding: 0.85rem 1rem;
+}
+
 /* Novo design simplificado */
 .checkout-simple {
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 320px 1fr;
+}
+
+.checkout-simple .checkout-summary,
+.checkout-simple .checkout-payment {
+  padding: 1.25rem;
 }
 
 .checkout-payment-simple {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .payment-provider {
@@ -749,4 +765,74 @@
 .access-blocked-card p {
   color: var(--text-muted);
   max-width: 400px;
+}
+
+/* Processing card animation */
+.iopay-processing {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--card);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-lg);
+}
+
+.btn-verify {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(79, 70, 229, 0.3);
+}
+
+.btn-verify:hover:not(:disabled) {
+  background: rgba(79, 70, 229, 0.18);
+  border-color: var(--primary);
+}
+
+.btn-verify:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.processing-animation {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--primary);
+}
+
+.processing-animation svg {
+  animation: pulse-spin 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-spin {
+  0% { transform: rotate(0deg) scale(1); opacity: 1; }
+  50% { transform: rotate(180deg) scale(1.15); opacity: 0.7; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+.iopay-processing h3 {
+  font-size: 1.2rem;
+  color: var(--secondary);
+  margin: 0 0 0.5rem;
+}
+
+.iopay-processing p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
 }

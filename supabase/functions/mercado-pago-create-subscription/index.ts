@@ -23,7 +23,8 @@ export default {
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
       const body = await req.json();
-      const { group_id, user_id, billing_cycle, months, reason, back_url, referral_code, payment_type } = body;
+      const { group_id, user_id, billing_cycle, months, reason, referral_code, payment_type } = body;
+      const force_new_plan = body.force_new_plan || false;
 
       if (!group_id || !user_id || !reason) {
         return new Response(
@@ -35,6 +36,9 @@ export default {
       const type = payment_type || "subscription";
       const cycleMonths = months && months > 0 ? months : 1;
       const cycle = billing_cycle || "monthly";
+
+      // Validar back_url para uso em todos os fluxos
+      const validBackUrl = "https://dividepass.vercel.app/dashboard";
 
       const { data: group, error: groupError } = await supabaseAdmin
         .from("groups")
@@ -83,12 +87,6 @@ export default {
               },
             ],
             external_reference: externalReference,
-            back_urls: {
-              success: `${back_url}?payment=entrance_success`,
-              pending: `${back_url}?payment=entrance_pending`,
-              failure: `${back_url}?payment=entrance_failure`,
-            },
-            auto_return: "approved",
             notification_url: webhookUrl,
             statement_descriptor: "DIVIDEPASS",
           }),
@@ -187,12 +185,18 @@ export default {
           .eq("key", planKey)
           .maybeSingle();
 
-        let preapprovalPlanId = existingPlan?.value;
+        let preapprovalPlanId = null;
+
+        if (!force_new_plan && existingPlan?.value) {
+          preapprovalPlanId = existingPlan.value;
+          console.log(`Using cached plan: ${preapprovalPlanId}`);
+        }
 
         if (!preapprovalPlanId) {
           console.log(`Creating new preapproval plan: ${planKey}`);
           const planBody = {
             reason: reason,
+            back_url: "https://www.dividepass.com/dashboard/credentials",
             auto_recurring: {
               frequency: mpFrequency,
               frequency_type: mpFrequencyType,
@@ -205,7 +209,6 @@ export default {
                 { id: "debit_card" },
               ],
             },
-            back_url: `${back_url}?payment=subscription_success`,
           };
 
           const planResp = await fetch("https://api.mercadopago.com/preapproval_plan", {
@@ -226,11 +229,11 @@ export default {
 
           preapprovalPlanId = planData.id;
 
-          // Salvar no banco para reutilizar
-          await supabaseAdmin.from("app_settings").insert({
+          // Salvar no banco para reutilizar (upsert para substituir plano com URL inválida)
+          await supabaseAdmin.from("app_settings").upsert({
             key: planKey,
             value: preapprovalPlanId,
-          });
+          }, { onConflict: "key" });
 
           console.log(`Plan created: ${preapprovalPlanId}`);
         }

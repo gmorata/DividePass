@@ -81,6 +81,22 @@ export function AuthProvider({ children }) {
         referral_code: code
       });
 
+      // Register customers on all payment gateways (fire and forget)
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-customers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData?.session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ user_id: data.user.id }),
+        });
+      } catch (e) {
+        console.error('Customer registration error (non-blocking):', e);
+      }
+
       if (referralCode) {
         const { data: referrerData } = await supabase
           .from('user_referral_codes')
