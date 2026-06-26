@@ -20,15 +20,41 @@ function ForgotPassword() {
       });
 
       if (fnError) throw new Error(fnError.message || 'Erro ao enviar email');
-      if (data?.error) throw new Error(data.error);
+
+      if (data?.error) {
+        setError(data.error);
+        return;
+      }
+
+      if (!data?.success) {
+        setError('Erro ao enviar. Tente novamente.');
+        return;
+      }
 
       setSubmitted(true);
-    } catch (err) {
-      setError(err.message || 'Erro ao enviar. Tente novamente.');
+    } catch {
+      setError('Erro ao enviar. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="forgot-container">
+        <div className="forgot-card">
+          <div className="success-message">
+            <div className="icon-circle">✓</div>
+            <h3>E-mail enviado!</h3>
+            <p>Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
+          </div>
+          <div className="forgot-footer">
+            <Link to="/login">Voltar para Login</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="forgot-container">
@@ -38,33 +64,25 @@ function ForgotPassword() {
           <p>Enviaremos instruções para o seu e-mail</p>
         </div>
 
-        {!submitted ? (
-          <form onSubmit={handleSubmit} className="forgot-form">
-            <div className="form-group">
-              <label htmlFor="email">E-mail cadastrado</label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-
-            {error && <div className="forgot-error">{error}</div>}
-
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-              {loading ? 'Enviando...' : 'Enviar Link'}
-            </button>
-          </form>
-        ) : (
-          <div className="success-message">
-            <div className="icon-circle">✓</div>
-            <h3>E-mail enviado!</h3>
-            <p>Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
+        <form onSubmit={handleSubmit} className="forgot-form">
+          <div className="form-group">
+            <label htmlFor="email">E-mail cadastrado</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              required
+            />
           </div>
-        )}
+
+          {error && <div className="forgot-error">{error}</div>}
+
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? 'Enviando...' : 'Enviar Link'}
+          </button>
+        </form>
 
         <div className="forgot-footer">
           <p>Lembrou a senha? <Link to="/login">Voltar para Login</Link></p>

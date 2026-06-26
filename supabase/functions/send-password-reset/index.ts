@@ -155,15 +155,25 @@ export default {
         });
       }
 
-      const { data: user, error: userError } = await supabaseAdmin
+      const cleanEmail = email.toLowerCase().trim();
+
+      let { data: user } = await supabaseAdmin
         .from("users")
         .select("id, name, email")
-        .eq("email", email.toLowerCase().trim())
+        .eq("email", cleanEmail)
         .maybeSingle();
 
-      if (userError || !user) {
+      if (!user) {
+        const { data: authUser } = await supabaseAdmin.auth.admin.listUsers();
+        const found = authUser?.users?.find((u: { email?: string }) => u.email === cleanEmail);
+        if (found) {
+          user = { id: found.id, name: found.user_metadata?.name || cleanEmail.split("@")[0], email: found.email };
+        }
+      }
+
+      if (!user) {
         return Response.json(
-          { success: true, message: "Se o email estiver cadastrado, você receberá as instruções." },
+          { success: false, error: "E-mail não encontrado. Verifique o endereço digitado." },
           { headers: corsHeaders },
         );
       }
