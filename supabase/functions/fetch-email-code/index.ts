@@ -7,21 +7,20 @@ const corsHeaders = {
 };
 
 const CODE_PATTERNS = [
-  /c[oó]digo[:\s]*(\d{4,8})/i,
   /c[oó]digo\s+de\s+(?:verifica[çc][ãa]o|valida[çc][ãa]|acesso)[:\s]*(\d{4,8})/i,
   /verification\s+code[:\s]*(\d{4,8})/i,
   /your\s+(?:verification\s+)?code[:\s]*(\d{4,8})/i,
   /use\s+(?:this\s+)?code[:\s]*(\d{4,8})/i,
-  /pin[:\s]*(\d{4,8})/i,
-  /(\d{6})\s+(?:is\s+your|for\s+your|é\s+seu)/i,
+  /seu\s+c[oó]digo[:\s]*(\d{4,8})/i,
+  /c[oó]digo[:\s]+(\d{4,8})/i,
+  /pin[:\s]+(\d{4,8})/i,
+  /(\d{6})\s+(?:is\s+your|for\s+your|é\s+seu|para\s+seu)/i,
   /enter\s+(\d{4,8})/i,
   /digite\s+(\d{4,8})/i,
   /insira\s+(\d{4,8})/i,
-  /\b(\d{6})\b/,
-  /\b(\d{8})\b/,
 ];
 
-const DEFAULT_BLOCKED_SUBJECTS = [
+const BLOCKED_SUBJECTS = [
   "password",
   "recuperação",
   "redefinição",
@@ -53,7 +52,7 @@ function extractCode(
   const lowerBody = (body || "").toLowerCase();
   for (const pattern of blockedSubjects) {
     if (lowerBody.includes(pattern.toLowerCase())) {
-      return { code: null, reason: `Assunto bloqueado: ${pattern}` };
+      return { code: null, reason: `Email bloqueado: contém "${pattern}"` };
     }
   }
 
@@ -64,7 +63,7 @@ function extractCode(
     }
   }
 
-  return { code: null, reason: "Nenhum código encontrado" };
+  return { code: null, reason: "Este email não contém nenhum código de verificação/PIN" };
 }
 
 function isSenderAllowed(sender: string, allowedSenders: string[]): boolean {
@@ -177,7 +176,7 @@ class ImapClient {
     const tag = this.nextTag();
     await this.conn.write(
       new TextEncoder().encode(
-        `${tag} FETCH ${uid} (BODY[HEADER.FIELDS (FROM SUBJECT)])\r\n`,
+        `${tag} FETCH ${uid} (BODY[HEADER.FIELDS (FROM SUBJECT DATE)])\r\n`,
       ),
     );
     return await this.readUntil(tag);
@@ -225,6 +224,12 @@ function extractSender(headerBlock: string): string {
 function extractSubject(headerBlock: string): string {
   const subMatch = headerBlock.match(/Subject:\s*(.+)/i);
   if (subMatch) return subMatch[1].trim();
+  return "";
+}
+
+function extractEmailDate(headerBlock: string): string {
+  const dateMatch = headerBlock.match(/Date:\s*(.+)/i);
+  if (dateMatch) return dateMatch[1].trim();
   return "";
 }
 
@@ -279,7 +284,6 @@ export default {
         );
       }
 
-      // Verify user is active member
       const { data: member } = await supabaseAdmin
         .from("group_members")
         .select("id")
@@ -306,7 +310,6 @@ export default {
         );
       }
 
-      // Fetch group email config
       const { data: group, error: groupError } = await supabaseAdmin
         .from("groups")
         .select(
@@ -356,11 +359,10 @@ export default {
       const imapPort = group.email_imap_port || 993;
       const allowedSenders = group.email_allowed_senders || [];
       const blockedSubjects = [
-        ...DEFAULT_BLOCKED_SUBJECTS,
+        ...BLOCKED_SUBJECTS,
         ...(group.email_blocked_subjects || []),
       ];
 
-      // Connect to IMAP with timeout
       let conn: Deno.TlsConn;
       try {
         conn = await Promise.race([
@@ -387,8 +389,8 @@ export default {
         await client.selectInbox();
         console.log("IMAP INBOX selected");
 
-        const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
-        const dateStr = parseDate(tenMinAgo.toISOString().split("T")[0]);
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const dateStr = parseDate(oneHourAgo.toISOString().split("T")[0]);
         console.log(`Searching emails since ${dateStr}`);
         const uids = await client.searchSince(dateStr);
 
@@ -399,7 +401,7 @@ export default {
             {
               code: null,
               message:
-                "Nenhum e-mail encontrado nos últimos 10 minutos.",
+                "Nenhum e-mail encontrado na caixa de entrada nas últimas horas.",
             },
             { headers: corsHeaders },
           );
@@ -409,11 +411,13 @@ export default {
         let foundCode: string | null = null;
         let foundSender = "";
         let foundSubject = "";
+        let foundDate = "";
 
-        for (const uid of sortedUids.slice(0, 10)) {
+        for (const uid of sortedUids.slice(0, 15)) {
           const headerBlock = await client.fetchHeaders(uid);
           const sender = extractSender(headerBlock);
           const subject = extractSubject(headerBlock);
+          const emailDate = extractEmailDate(headerBlock);
 
           if (!isSenderAllowed(sender, allowedSenders)) {
             continue;
@@ -434,6 +438,7 @@ export default {
             foundCode = result.code;
             foundSender = sender;
             foundSubject = subject;
+            foundDate = emailDate;
             break;
           }
         }
@@ -442,13 +447,12 @@ export default {
           return Response.json(
             {
               code: null,
-              message: "Nenhum código de verificação encontrado nos e-mails recentes.",
+              message: "Nenhum código de verificação encontrado nos e-mails recentes. Verifique se o email enviado contém um PIN/código de verificação.",
             },
             { headers: corsHeaders },
           );
         }
 
-        // Save code to verification_pins
         const { error: insertError } = await supabaseAdmin
           .from("verification_pins")
           .insert({
@@ -468,7 +472,7 @@ export default {
             code: foundCode,
             sender: foundSender,
             subject: foundSubject,
-            received_at: new Date().toISOString(),
+            received_at: foundDate || new Date().toISOString(),
             expires_in: 600,
           },
           { headers: corsHeaders },

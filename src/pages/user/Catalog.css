@@ -425,7 +425,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1.25rem;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
   transition: transform 0.2s, box-shadow 0.2s;
   display: flex;
@@ -450,7 +450,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.85rem;
   gap: 0.5rem;
 }
 
@@ -473,6 +473,17 @@
   display: inline-flex;
   color: #0EA5E9;
   vertical-align: middle;
+  animation: verifiedPulseStrong 1.8s ease-in-out infinite;
+}
+
+.verified-badge svg {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes verifiedPulseStrong {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(14, 165, 233, 0)); }
+  50% { transform: scale(1.2); filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.6)); }
 }
 
 .tag {
@@ -507,7 +518,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.85rem;
 }
 
 .group-progress {
@@ -663,15 +674,15 @@
 }
 
 .group-card-creator-avatar {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .group-card-creator-avatar-placeholder {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), #818CF8);
   color: white;
@@ -698,6 +709,18 @@
   padding: 0.15rem 0.45rem;
   border-radius: 1rem;
   margin-left: auto;
+  animation: oficialPulse 2s ease-in-out infinite;
+}
+
+@keyframes oficialPulse {
+  0%, 100% {
+    background: rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+  }
+  50% {
+    background: rgba(79, 70, 229, 0.2);
+    box-shadow: 0 0 12px 2px rgba(79, 70, 229, 0.2);
+  }
 }
 
 .group-card-creator.official .group-card-creator-avatar-placeholder {
@@ -708,9 +731,7 @@
   color: var(--primary);
 }
 
-.group-card-footer {
-  margin-top: 1.5rem;
-}
+/* group-card-footer removed — card is now fully clickable */
 
 .group-card-footer .btn:disabled {
   opacity: 0.6;
@@ -862,80 +883,255 @@
 }
 
 @media (max-width: 768px) {
+  /* === Catalog Grid (services list) === */
   .catalog-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
   }
 
   .catalog-header {
-    height: 70px;
+    height: 60px;
   }
 
   .catalog-logo,
   .catalog-icon-text {
-    width: 40px;
-    height: 40px;
-    font-size: 1.25rem;
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
   }
 
   .catalog-body {
-    padding: 0.75rem;
+    padding: 0.4rem 0.5rem 0.55rem;
   }
 
   .catalog-body h3 {
-    font-size: 0.85rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .catalog-btn {
-    font-size: 0.75rem;
-    padding: 0.5rem 0.75rem;
+    font-size: 0.68rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
   }
 
+  /* === Group Detail Header === */
   .catalog-detail-header {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .catalog-detail-header .page-header {
+    margin-bottom: 0;
+  }
+
+  .catalog-detail-header .page-header h1 {
+    font-size: 1.1rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .catalog-detail-header .page-header p {
+    font-size: 0.78rem;
+    margin: 0;
   }
 
   .btn-interest-header {
     width: 100%;
     justify-content: center;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.8rem;
+    border-radius: 0.65rem;
   }
 
+  /* === Filters === */
   .catalog-filters {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .catalog-filters .search-input-wrap {
+    grid-column: 1 / -1;
+  }
+
+  .catalog-filters-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .catalog-filters-row .filter-btn,
+  .catalog-filters-row .sort-select {
+    flex: 1;
   }
 
   .search-input-wrap {
     min-width: unset;
+    padding: 0.45rem 0.7rem;
+    border-radius: 0.6rem;
+  }
+
+  .search-input-wrap input {
+    font-size: 0.82rem;
   }
 
   .filter-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+    border-radius: 0.6rem;
     justify-content: center;
   }
 
-  .groups-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .sort-select {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+    border-radius: 0.6rem;
   }
 
+  /* === Groups Grid === */
+  .groups-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  /* === Group Card === */
   .group-card {
-    padding: 1.25rem;
+    padding: 0.7rem;
+    border-radius: 0.75rem;
+  }
+
+  .group-card-header {
+    margin-bottom: 0.4rem;
+    gap: 0.35rem;
   }
 
   .group-card-header h3 {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    gap: 0.25rem;
+  }
+
+  /* === Verified Badge — PULSING === */
+  .verified-badge {
+    display: inline-flex;
+    color: #0EA5E9;
+    animation: verifiedPulseStrong 1.8s ease-in-out infinite;
+  }
+
+  .verified-badge svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  @keyframes verifiedPulseStrong {
+    0%, 100% {
+      transform: scale(1);
+      filter: drop-shadow(0 0 0 rgba(14, 165, 233, 0));
+    }
+    50% {
+      transform: scale(1.2);
+      filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.6));
+    }
+  }
+
+  /* === Tags === */
+  .tag {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  /* === Card Body === */
+  .group-card-body {
+    gap: 0.45rem;
+  }
+
+  /* === Progress === */
+  .group-progress {
+    gap: 0.2rem;
+  }
+
+  .progress-bar {
+    height: 4px;
+  }
+
+  .progress-text {
+    font-size: 0.68rem;
+  }
+
+  /* === Price — FOCAL POINT === */
+  .group-price {
+    padding-top: 0.4rem;
+    gap: 0.05rem;
+  }
+
+  .price-label {
+    font-size: 0.68rem;
   }
 
   .price-value {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
-  .group-rules {
-    font-size: 0.8rem;
+  .price-value small {
+    font-size: 0.72rem;
   }
 
+  /* === Creator — FOCAL POINT === */
+  .group-card-creator {
+    padding-top: 0.35rem;
+    margin-top: 0;
+    font-size: 0.7rem;
+    gap: 0.35rem;
+  }
+
+  .group-card-creator-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 0.6rem;
+  }
+
+  .group-card-creator-avatar-placeholder {
+    width: 26px;
+    height: 26px;
+    font-size: 0.6rem;
+  }
+
+  /* === Oficial Seal — PULSE === */
+  .group-card-official-seal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: rgba(79, 70, 229, 0.12);
+    padding: 0.15rem 0.4rem;
+    border-radius: 1rem;
+    margin-left: auto;
+    animation: oficialPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes oficialPulse {
+    0%, 100% {
+      background: rgba(79, 70, 229, 0.12);
+      box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+    }
+    50% {
+      background: rgba(79, 70, 229, 0.22);
+      box-shadow: 0 0 12px 2px rgba(79, 70, 229, 0.2);
+    }
+  }
+
+  /* === Card hover effect === */
+  .group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.1);
+  }
+
+  /* === Modal === */
   .modal-actions {
     flex-direction: column;
   }
@@ -943,5 +1139,23 @@
   .modal-actions .btn {
     width: 100%;
     justify-content: center;
+  }
+
+  /* === Info Banner === */
+  .info-banner {
+    font-size: 0.82rem;
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .info-banner a {
+    font-size: 0.78rem;
+  }
+
+  /* === Empty Groups === */
+  .empty-groups {
+    padding: 2rem 1rem;
+    font-size: 0.85rem;
   }
 }

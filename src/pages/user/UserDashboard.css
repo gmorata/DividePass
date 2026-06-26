@@ -160,6 +160,51 @@
   color: var(--text-muted);
 }
 
+@media (max-width: 480px) {
+  .metric-card {
+    padding: 1rem;
+  }
+
+  .metric-value {
+    font-size: 1.6rem;
+  }
+
+  .metric-card h3 {
+    font-size: 0.85rem;
+  }
+
+  .metric-card.highlight {
+    background: linear-gradient(135deg, var(--primary), #818CF8);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .metric-card.highlight .metric-value {
+    font-size: 1.4rem;
+  }
+
+  .metric-card.highlight .metric-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .section-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .section-title-row .btn-sm {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .active-services-section,
+  .available-services-section {
+    margin-bottom: 2rem;
+  }
+}
+
 .section-title-row {
   display: flex;
   align-items: center;
@@ -600,41 +645,49 @@
   }
 
   .available-services-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
 
   .available-service-header {
-    height: 65px;
+    height: 52px;
   }
 
   .available-service-logo {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
   }
 
   .available-service-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1.1rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
   }
 
   .available-service-body {
-    padding: 0.5rem 0.75rem 0.75rem;
+    padding: 0.3rem 0.5rem 0.5rem;
   }
 
   .available-service-body h3 {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .available-service-btn {
-    font-size: 0.7rem;
-    padding: 0.4rem 0.6rem;
+    font-size: 0.65rem;
+    padding: 0.3rem 0.45rem;
   }
 
   .service-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 1.5rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1.35rem;
+  }
+
+  .service-info h4 {
+    font-size: 0.95rem;
   }
 }

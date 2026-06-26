@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Check, BadgeCheck, ScrollText, Search, X, Bell, Pin, Star } from 'lucide-react';
+import { ChevronLeft, Check, BadgeCheck, Search, X, Bell, Pin, Star } from 'lucide-react';
 import { useAppDataContext } from '../../contexts/AppDataContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
@@ -271,22 +271,24 @@ function Catalog() {
               </button>
             )}
           </div>
-          <button
-            className={`filter-btn ${verifiedOnly ? 'active' : ''}`}
-            onClick={() => setVerifiedOnly(!verifiedOnly)}
-          >
-            <BadgeCheck size={16} />
-            Verificados
-          </button>
-          <select
-            className="sort-select"
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-          >
-            {SORT_OPTIONS.map(opt => (
-              <option key={opt.key} value={opt.key}>{opt.label}</option>
-            ))}
-          </select>
+          <div className="catalog-filters-row">
+            <button
+              className={`filter-btn ${verifiedOnly ? 'active' : ''}`}
+              onClick={() => setVerifiedOnly(!verifiedOnly)}
+            >
+              <BadgeCheck size={14} />
+              Verificados
+            </button>
+            <select
+              className="sort-select"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+            >
+              {SORT_OPTIONS.map(opt => (
+                <option key={opt.key} value={opt.key}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {filteredGroups.length === 0 && (
@@ -308,13 +310,18 @@ function Catalog() {
             const cycleInfo = formatCycleLabel(group);
 
             return (
-              <div key={group.id} className={`group-card ${full ? 'group-card-full' : ''}`}>
+              <div
+                key={group.id}
+                className={`group-card ${full ? 'group-card-full' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/dashboard/groups/${group.slug || group.id}`)}
+              >
                 <div className="group-card-header">
                   <h3>
                     {group.name}
                     {group.verified && (
                       <span className="verified-badge" title="Grupo verificado pela DividePass">
-                        <BadgeCheck size={18} />
+                        <BadgeCheck size={20} />
                       </span>
                     )}
                   </h3>
@@ -353,21 +360,6 @@ function Catalog() {
                     </div>
                   )}
 
-                  {group.tags && group.tags.length > 0 && (
-                    <div className="group-tags">
-                      {group.tags.map((tag, idx) => (
-                        <span key={idx} className="group-tag-item">{tag}</span>
-                      ))}
-                    </div>
-                  )}
-
-                  {group.rules && (
-                    <div className="group-rules">
-                      <ScrollText size={16} />
-                      <p>{group.rules}</p>
-                    </div>
-                  )}
-
                   <div className="group-price">
                     <span className="price-label">A partir de</span>
                     <span className="price-value">
@@ -377,17 +369,19 @@ function Catalog() {
                   </div>
 
                   {group.is_official ? (
-                    <Link to={adminUser ? `/dashboard/user/${adminUser.id}` : '#'} className="group-card-creator official">
+                    <div className="group-card-creator official">
                       {adminUser?.avatar_url ? (
                         <img src={adminUser.avatar_url} alt="" className="group-card-creator-avatar" />
                       ) : (
                         <div className="group-card-creator-avatar-placeholder">DP</div>
                       )}
                       <span>Criado por: <strong>DividePass</strong></span>
-                      <span className="group-card-official-seal">Oficial</span>
-                    </Link>
+                      <span className="group-card-official-seal">
+                        <BadgeCheck size={12} /> Oficial
+                      </span>
+                    </div>
                   ) : group.owner ? (
-                    <Link to={`/dashboard/user/${group.owner.id}`} className="group-card-creator">
+                    <div className="group-card-creator">
                       {group.owner.avatar_url ? (
                         <img src={group.owner.avatar_url} alt="" className="group-card-creator-avatar" />
                       ) : (
@@ -396,38 +390,27 @@ function Catalog() {
                         </div>
                       )}
                       <span>Criado por: <strong>{group.owner.name || 'Admin'}</strong></span>
-                    </Link>
+                    </div>
                   ) : adminUser ? (
-                    <Link to={`/dashboard/user/${adminUser.id}`} className="group-card-creator official">
+                    <div className="group-card-creator official">
                       {adminUser.avatar_url ? (
                         <img src={adminUser.avatar_url} alt="" className="group-card-creator-avatar" />
                       ) : (
                         <div className="group-card-creator-avatar-placeholder">DP</div>
                       )}
                       <span>Criado por: <strong>DividePass</strong></span>
-                      <span className="group-card-official-seal">Oficial</span>
-                    </Link>
+                      <span className="group-card-official-seal">
+                        <BadgeCheck size={12} /> Oficial
+                      </span>
+                    </div>
                   ) : (
                     <div className="group-card-creator official">
                       <div className="group-card-creator-avatar-placeholder">DP</div>
                       <span>Criado por: <strong>DividePass</strong></span>
-                      <span className="group-card-official-seal">Oficial</span>
+                      <span className="group-card-official-seal">
+                        <BadgeCheck size={12} /> Oficial
+                      </span>
                     </div>
-                  )}
-                </div>
-
-                <div className="group-card-footer">
-                  {full || alreadySubscribed ? (
-                    <button className="btn btn-disabled btn-full" disabled>
-                      {full ? 'Grupo Cheio' : 'Já Assinado'}
-                    </button>
-                  ) : (
-                    <Link
-                      to={`/dashboard/groups/${group.slug || group.id}`}
-                      className="btn btn-primary btn-full btn-card-cta"
-                    >
-                      Ver Detalhes
-                    </Link>
                   )}
                 </div>
               </div>

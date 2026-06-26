@@ -1,16 +1,9 @@
-import { useState, useEffect } from 'react';
-import { CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CreditCard, Loader2, AlertCircle } from 'lucide-react';
 
-export default function IOPayCardForm({ amount, onCardDataReady, onError, disabled, resetKey }) {
+function IOPayCardFormInner({ amount, onCardDataReady, onError, disabled }) {
   const [loading, setLoading] = useState(false);
   const [paymentState, setPaymentState] = useState('idle');
-
-  useEffect(() => {
-    if (resetKey) {
-      setPaymentState('idle');
-      setLoading(false);
-    }
-  }, [resetKey]);
   const [cardData, setCardData] = useState({
     card_number: '',
     card_holder_name: '',
@@ -194,4 +187,8 @@ export default function IOPayCardForm({ amount, onCardDataReady, onError, disabl
       </button>
     </form>
   );
+}
+
+export default function IOPayCardForm({ resetKey, ...props }) {
+  return <IOPayCardFormInner key={resetKey} {...props} />;
 }

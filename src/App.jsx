@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import PaymentReturn from './pages/PaymentReturn';
 import NotFound from './pages/NotFound';
 
@@ -62,6 +63,7 @@ function App() {
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/payment/return" element={<PaymentReturn />} />
             <Route path="/checkout/:groupSlug" element={<Checkout />} />
 

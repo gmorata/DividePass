@@ -25,6 +25,7 @@ import { useAppDataContext } from '../../contexts/AppDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import GroupChat from '../../components/GroupChat';
+import ContactAdminModal from '../../components/ContactAdminModal';
 import './ServiceCredentials.css';
 
 function ServiceCredentials() {
@@ -44,6 +45,7 @@ function ServiceCredentials() {
   const [lastFetchTime, setLastFetchTime] = useState(0);
   const [cooldown, setCooldown] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const activeServices = getActiveServices();
   const activeService = activeServices.find(item => item.service.id === serviceId || item.service.slug === serviceId);
@@ -207,7 +209,12 @@ function ServiceCredentials() {
       }
 
       if (json.code) {
-        setVerificationCode(json);
+        setVerificationCode({
+          code: json.code,
+          sender: json.sender || '',
+          subject: json.subject || '',
+          received_at: json.received_at || new Date().toISOString(),
+        });
         setCodeMessage('');
       } else {
         setCodeMessage(json.message || 'Nenhum código encontrado');
@@ -353,7 +360,7 @@ function ServiceCredentials() {
         </div>
 
         <div className="credential-body">
-          {group.rules && (
+          {!showChat && group.rules && (
             <div className="credential-rules-highlight">
               <div className="rules-highlight-header">
                 <ScrollText size={20} />
@@ -446,23 +453,36 @@ function ServiceCredentials() {
                       )}
                     </div>
                   ) : (
-                    <button
-                      className="btn btn-primary fetch-code-btn"
-                      onClick={handleFetchCode}
-                      disabled={fetchingCode || cooldown}
-                    >
-                      {fetchingCode ? (
-                        <>
-                          <Loader2 size={16} className="spin" />
-                          Buscando...
-                        </>
-                      ) : (
-                        <>
-                          <Mail size={16} />
-                          Buscar Código
-                        </>
-                      )}
-                    </button>
+                    <>
+                      <button
+                        className="btn btn-primary fetch-code-btn"
+                        onClick={handleFetchCode}
+                        disabled={fetchingCode || cooldown}
+                      >
+                        {fetchingCode ? (
+                          <>
+                            <Loader2 size={16} className="spin" />
+                            Buscando...
+                          </>
+                        ) : (
+                          <>
+                            <Mail size={16} />
+                            Buscar Código
+                          </>
+                        )}
+                      </button>
+                      <p className="email-delay-warning">
+                        Os e-mails podem sofrer delay caso os servidores estejam com instabilidade.
+                       {' '}
+                        <button
+                          type="button"
+                          className="contact-admin-link"
+                          onClick={() => setShowContactModal(true)}
+                        >
+                          Contatar administrador do grupo
+                        </button>
+                      </p>
+                    </>
                   )}
 
                   {verificationCode && (
@@ -514,38 +534,51 @@ function ServiceCredentials() {
             </div>
           )}
 
-          <div className="credential-meta-grid">
-            <div className="credential-meta-item">
-              <Calendar size={18} />
-              <div>
-                <span>Ativada em</span>
-                <strong>{new Date(activeService.started_at || activeService.created_at).toLocaleDateString('pt-BR')}</strong>
+          {!showChat && (
+            <>
+              <div className="credential-meta-grid">
+                <div className="credential-meta-item">
+                  <Calendar size={18} />
+                  <div>
+                    <span>Ativada em</span>
+                    <strong>{new Date(activeService.started_at || activeService.created_at).toLocaleDateString('pt-BR')}</strong>
+                  </div>
+                </div>
+                <div className="credential-meta-item">
+                  <RotateCcw size={18} />
+                  <div>
+                    <span>Renovação</span>
+                    <strong>{activeService.expires_at ? new Date(activeService.expires_at).toLocaleDateString('pt-BR') : 'Mensal'}</strong>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="credential-meta-item">
-              <RotateCcw size={18} />
-              <div>
-                <span>Renovação</span>
-                <strong>{activeService.expires_at ? new Date(activeService.expires_at).toLocaleDateString('pt-BR') : 'Mensal'}</strong>
-              </div>
-            </div>
-          </div>
 
-          <div className="credential-actions-row">
-            <Link
-              to={`/dashboard/subscription/${activeService.id}`}
-              className="btn btn-sm btn-outline manage-sub-btn"
-            >
-              <Settings size={15} />
-              Gerenciar assinatura
-            </Link>
-          </div>
+              <div className="credential-actions-row">
+                <Link
+                  to={`/dashboard/subscription/${activeService.id}`}
+                  className="btn btn-sm btn-outline manage-sub-btn"
+                >
+                  <Settings size={15} />
+                  Gerenciar assinatura
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
       )}
 
       {showChat && (
         <GroupChat groupId={group.id} />
+      )}
+
+      {showContactModal && (
+        <ContactAdminModal
+          groupId={group.id}
+          groupName={group.name}
+          isOfficial={group.is_official}
+          onClose={() => setShowContactModal(false)}
+        />
       )}
     </div>
   );

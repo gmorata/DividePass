@@ -1,15 +1,33 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import './ForgotPassword.css';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Password reset requested for', email);
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('send-password-reset', {
+        body: { email: email.trim() },
+      });
+
+      if (fnError) throw new Error(fnError.message || 'Erro ao enviar email');
+      if (data?.error) throw new Error(data.error);
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || 'Erro ao enviar. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -19,33 +37,35 @@ function ForgotPassword() {
           <h2>Recuperar Senha</h2>
           <p>Enviaremos instruções para o seu e-mail</p>
         </div>
-        
+
         {!submitted ? (
           <form onSubmit={handleSubmit} className="forgot-form">
             <div className="form-group">
               <label htmlFor="email">E-mail cadastrado</label>
-              <input 
-                type="email" 
-                id="email" 
+              <input
+                type="email"
+                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                required 
+                required
               />
             </div>
-            
-            <button type="submit" className="btn btn-primary btn-full">
-              Enviar Link
+
+            {error && <div className="forgot-error">{error}</div>}
+
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+              {loading ? 'Enviando...' : 'Enviar Link'}
             </button>
           </form>
         ) : (
           <div className="success-message">
             <div className="icon-circle">✓</div>
             <h3>E-mail enviado!</h3>
-            <p>Verifique sua caixa de entrada para redefinir sua senha.</p>
+            <p>Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
           </div>
         )}
-        
+
         <div className="forgot-footer">
           <p>Lembrou a senha? <Link to="/login">Voltar para Login</Link></p>
         </div>

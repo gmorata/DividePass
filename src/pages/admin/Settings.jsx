@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Settings as SettingsIcon, Save, Loader2, Info, AlertTriangle, CreditCard, Zap, Shield, Globe } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Loader2, Info, AlertTriangle, CreditCard, Zap, Shield, Globe, Mail } from 'lucide-react';
 import './Settings.css';
 
 const DEFAULTS = {
@@ -64,6 +64,7 @@ function Settings() {
   const [entranceFee, setEntranceFee] = useState('');
   const [activeGateway, setActiveGateway] = useState('mercadopago');
   const [gatewayConfigs, setGatewayConfigs] = useState({});
+  const [smtpConfigs, setSmtpConfigs] = useState({});
 
   useEffect(() => {
     async function fetchSettings() {
@@ -96,6 +97,17 @@ function Settings() {
       });
       setGatewayConfigs(configs);
 
+      const SMTP_KEYS = [
+        'smtp_host', 'smtp_port',
+        'smtp_user_support', 'smtp_user_noreply',
+        'smtp_from_support', 'smtp_from_noreply',
+      ];
+      const smtpCfg = {};
+      SMTP_KEYS.forEach((key) => {
+        smtpCfg[key] = map[key] ?? '';
+      });
+      setSmtpConfigs(smtpCfg);
+
       setLoading(false);
     }
 
@@ -104,6 +116,10 @@ function Settings() {
 
   const handleGatewayConfigChange = (key, value) => {
     setGatewayConfigs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSmtpConfigChange = (key, value) => {
+    setSmtpConfigs((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {
@@ -121,6 +137,10 @@ function Settings() {
 
       Object.entries(gatewayConfigs).forEach(([key, value]) => {
         updates.push({ key, value });
+      });
+
+      Object.entries(smtpConfigs).forEach(([key, value]) => {
+        if (value) updates.push({ key, value });
       });
 
       const { error: err } = await supabase
@@ -327,6 +347,101 @@ function Settings() {
               <p>
                 Grupos criados por usuários sempre terão taxa de entrada. Apenas o admin pode
                 remover no editor de grupos.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SMTP Email ── */}
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <h2>
+              <Mail size={18} />
+              SMTP - Envio de E-mails
+            </h2>
+          </div>
+
+          <div className="settings-section-body">
+            <div className="settings-info-block">
+              <Info size={16} />
+              <p>
+                Configurações de e-mail para suporte e notificações.
+                <strong> A senha SMTP é armazenada como segredo do Supabase (não aparece aqui).</strong>
+              </p>
+            </div>
+
+            <div className="form-row-2">
+              <div className="form-group">
+                <label>SMTP Host</label>
+                <input
+                  type="text"
+                  value={smtpConfigs.smtp_host || ''}
+                  onChange={(e) => handleSmtpConfigChange('smtp_host', e.target.value)}
+                  placeholder="mail.dividepass.com"
+                />
+              </div>
+              <div className="form-group">
+                <label>SMTP Porta</label>
+                <input
+                  type="number"
+                  value={smtpConfigs.smtp_port || ''}
+                  onChange={(e) => handleSmtpConfigChange('smtp_port', e.target.value)}
+                  placeholder="465"
+                />
+              </div>
+            </div>
+
+            <div className="form-row-2">
+              <div className="form-group">
+                <label>Usuário Suporte</label>
+                <input
+                  type="text"
+                  value={smtpConfigs.smtp_user_support || ''}
+                  onChange={(e) => handleSmtpConfigChange('smtp_user_support', e.target.value)}
+                  placeholder="suporte@dividepass.com"
+                />
+                <small className="field-hint">Email usado para envio de suporte</small>
+              </div>
+              <div className="form-group">
+                <label>Usuário Noreply</label>
+                <input
+                  type="text"
+                  value={smtpConfigs.smtp_user_noreply || ''}
+                  onChange={(e) => handleSmtpConfigChange('smtp_user_noreply', e.target.value)}
+                  placeholder="noreply@dividepass.com"
+                />
+                <small className="field-hint">Email usado para códigos, senhas, notificações</small>
+              </div>
+            </div>
+
+            <div className="form-row-2">
+              <div className="form-group">
+                <label>From Suporte</label>
+                <input
+                  type="text"
+                  value={smtpConfigs.smtp_from_support || ''}
+                  onChange={(e) => handleSmtpConfigChange('smtp_from_support', e.target.value)}
+                  placeholder="DividePass Suporte <suporte@dividepass.com>"
+                />
+                <small className="field-hint">Nome + email exibido no envio de suporte</small>
+              </div>
+              <div className="form-group">
+                <label>From Noreply</label>
+                <input
+                  type="text"
+                  value={smtpConfigs.smtp_from_noreply || ''}
+                  onChange={(e) => handleSmtpConfigChange('smtp_from_noreply', e.target.value)}
+                  placeholder="DividePass <noreply@dividepass.com>"
+                />
+                <small className="field-hint">Nome + email exibido em códigos e notificações</small>
+              </div>
+            </div>
+
+            <div className="settings-info-block warning">
+              <AlertTriangle size={16} />
+              <p>
+                A senha SMTP é configurada como segredo do Supabase via CLI:
+                <code> npx supabase secrets set SMTP_PASS=sua_senha</code>
               </p>
             </div>
           </div>
