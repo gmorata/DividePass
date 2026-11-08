@@ -194,6 +194,23 @@
   font-size: 0.9rem;
 }
 
+/* E-mail do grupo */
+.manage-email-error {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.manage-password-input input[readonly] {
+  color: var(--text-muted);
+  cursor: default;
+}
+
 /* Members */
 .manage-members-list {
   display: flex;

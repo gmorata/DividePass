@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, Save, Trash2, Users, DollarSign, Settings, Key,
-  CheckCircle, X, AlertTriangle, Eye, EyeOff
+  CheckCircle, X, AlertTriangle, Eye, EyeOff, Mail, MailPlus, Copy
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,6 +27,11 @@ function ManageGroup() {
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [creatingEmail, setCreatingEmail] = useState(false);
+  const [groupEmail, setGroupEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -76,6 +81,8 @@ function ManageGroup() {
           setLoginEmail(credsRes.data.login_email || '');
           setLoginPassword(credsRes.data.login_password || '');
         }
+
+        setGroupEmail(groupData.email_address || '');
       } catch (err) {
         setError(err.message);
       } finally {
@@ -110,6 +117,45 @@ function ManageGroup() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCreateGroupEmail = async () => {
+    setCreatingEmail(true);
+    setEmailError('');
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-group-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ group_id: groupId }),
+        }
+      );
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Não foi possível criar o e-mail do grupo.');
+      }
+
+      setGroupEmail(payload.email || '');
+      setToast(
+        payload.criado
+          ? 'E-mail do grupo criado com sucesso!'
+          : payload.mensagem || 'Este grupo já possui um e-mail configurado.'
+      );
+    } catch (err) {
+      setEmailError(err.message);
+    } finally {
+      setCreatingEmail(false);
     }
   };
 
@@ -291,6 +337,56 @@ function ManageGroup() {
               {saving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
               Salvar Credenciais
             </button>
+          </div>
+
+          {/* E-mail do grupo */}
+          <div className="manage-card">
+            <div className="manage-card-title">
+              <Mail size={18} />
+              <h3>E-mail do Grupo</h3>
+            </div>
+
+            {groupEmail ? (
+              <>
+                <p className="manage-empty-text">
+                  Mailbox do grupo ativa. É por ela que os códigos de verificação do serviço são recebidos.
+                </p>
+                <div className="manage-form-group">
+                  <label>Endereço</label>
+                  <div className="manage-password-input">
+                    <input readOnly value={groupEmail} />
+                    <button
+                      type="button"
+                      className="manage-password-toggle"
+                      onClick={() => {
+                        navigator.clipboard.writeText(groupEmail);
+                        setCopiedEmail(true);
+                        setTimeout(() => setCopiedEmail(false), 2000);
+                      }}
+                    >
+                      {copiedEmail ? <CheckCircle size={16} /> : <Copy size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="manage-empty-text">
+                  Cria uma mailbox no painel de hospedagem no padrão [id_do_grupo]@dividepass.com, usada para
+                  receber os códigos de verificação do serviço.
+                </p>
+                <button
+                  className="btn btn-primary btn-full"
+                  onClick={handleCreateGroupEmail}
+                  disabled={creatingEmail}
+                >
+                  {creatingEmail ? <Loader2 size={16} className="spin" /> : <MailPlus size={16} />}
+                  Criar e-mail do grupo
+                </button>
+              </>
+            )}
+
+            {emailError && <p className="manage-email-error">{emailError}</p>}
           </div>
 
           {/* Danger Zone */}
